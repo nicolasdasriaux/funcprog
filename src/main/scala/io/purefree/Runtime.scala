@@ -1,6 +1,7 @@
 package io.purefree
 
 import IO.Op
+
 object Runtime {
   def unsafeRun[A](io: IO[A]): A = {
     io match {

@@ -1,5 +1,5 @@
 autoscale: true
-footer: Practical Pure I/O in Java
+footer: Practical Pure I/O in Scala
 slidenumbers: true
 
 # Practical
@@ -7,6 +7,39 @@ slidenumbers: true
 # [fit] **Pure I/O**
 
 ## in Scala
+
+---
+
+# Previously on Practical Immutability...
+
+* Immutable **Classes**
+* Immutable **Collections** and **Options**
+* Immutable **Variables**
+* Expressions
+* `enum` on steroids aka Algebraic Data Types (**ADT**)
+* Pattern Matching
+
+---
+
+# What Functional Programming Is About
+
+* Functional Programming (FP) is programming with **functions**.
+  - **Deterministic**: same arguments implies same result
+  - **Total**: result always available for arguments, no exception
+  - **Pure**: no side-effects, only effect is computing result
+
+* A benefit of FP is **referential transparency**.
+
+---
+
+# What Referential Transparency Brings
+
+* **Typical refactorings cannot break a working program** :thumbsup:.
+* Applies to the following refactorings:
+  - :wrench: **Extract Variable**
+  - :wrench: **Inline Variable**
+  - :wrench: **Extract Method**
+  - :wrench: **Inline Method**
 
 ---
 
@@ -129,6 +162,20 @@ object IO { // ...
 
 ---
 
+# Elementary `Console` Programs
+
+```scala
+object Console {
+  def printLine(o: Any): IO[Unit] =
+    IO.attempt(/* () => */ println(o))
+    
+  val readLine: IO[String] =
+    IO.attempt(/* () => */ StdIn.readLine())
+}
+```
+
+---
+
 # Program Yielding a Value
 
 ```scala
@@ -171,17 +218,6 @@ case class IO[+A](unsafeIO: () => A) { ioA => // ...
 
     ioB
   }
-}
-```
-
----
-
-# Elementary `Console` Programs
-
-```scala
-object Console {
-  def printLine(o: Any): IO[Unit] = IO.attempt(println(o))
-  val readLine: IO[String] = IO.attempt(StdIn.readLine())
 }
 ```
 
@@ -258,6 +294,10 @@ object ConsoleApp {
 
 * Sure, `unsafeRun` call point (**_edge of the world_**) is **impure** :imp:...
 * But the **rest of the code** is fully **pure** :innocent:!
+
+---
+
+# `for` Comprehension
 
 ---
 
@@ -399,3 +439,195 @@ val printRandomPoint: IO[Point] = {
   } /* |    |    |    |    |    |    | */ yield point
 }
 ```
+
+---
+
+# Writing a Small Application
+
+---
+
+# Saying Hello
+
+```scala
+val helloApp: IO[Unit] =
+  for {
+    _ <- Console.printLine("What's your name?")
+    name <- Console.readLine
+    _ <- Console.printLine(s"Hello $name!")
+  } yield ()
+```
+
+---
+
+# Counting Down
+
+```scala
+val countDownApp: IO[Unit] =
+  for {
+    n <- readIntBetween(10, 100000)
+    _ <- countdown(n)
+  } yield ()
+
+def countdown(n: Int): IO[Unit] =
+  if n == 0 then
+    Console.printLine("BOOM!!!")
+  else
+    for {
+      _ <- Console.printLine(n)
+      _ <- /* RECURSE */ countdown(n - 1)
+    } yield ()
+```
+
+---
+
+# Displaying Menu and Getting Choice
+
+```scala
+val displayMenu: IO[Unit] =
+  for {
+    _ <- Console.printLine("1) Hello")
+    _ <- Console.printLine("2) Countdown")
+    _ <- Console.printLine("3) Exit")
+  } yield ()
+
+val readChoice: IO[Int] = readIntBetween(1, 3)
+```
+
+---
+
+# Launching Menu Item
+
+```scala
+def launchMenuItem(choice: Int): IO[Boolean] =
+  choice match {
+    case 1 => helloApp.map(_ => false)
+    case 2 => countDownApp.map(_ => false)
+    case 3 => IO.succeed(true)
+  }
+```
+
+---
+
+# Looping over Menu
+
+```scala
+def mainApp: IO[Unit] =
+  for {
+    _ <- displayMenu
+    choice <- readChoice
+    exit <- launchMenuItem(choice)
+    _ <- if exit then IO.succeed(()) else /* RECURSE */ mainApp
+  } yield ()
+```
+
+---
+
+# Reading Integer from Console
+
+```scala
+def readIntBetween(min: Int, max: Int): IO[Int] =
+  for {
+    _ <- Console.printLine(s"Enter a number between $min and $max")
+    i <- readInt
+    n <- if min <= i && i <= max then IO.succeed(i) else /* RECURSE */ readIntBetween(min, max)
+  } yield n
+
+def readInt: IO[Int] = Console.readLine.map(_.toInt)
+```
+
+---
+
+# Just a Fancy Toy
+
+* What's **good**
+  - Easy to reason about with type safety :thumbsup:
+  - Unlimited safe refactorings :thumbsup:
+* What's **not so good**
+  - Stack unsafe :bomb:
+  - Do not handle exceptions, need a better error model :thumbsdown:
+  - Not testable :thumbsdown:
+  - Difficult to debug :thumbsdown:
+
+---
+
+# Toward a Stack-Freer Implementation
+
+---
+
+# Describing Operations with an ADT
+
+```scala
+trait IO[+A] {
+  // ...
+}
+
+object IO { // ...
+  // An ADT (Algebraic Data Type) with a type parameter
+  // known as GADT (Generalized Algebraic Data Type)
+  enum Op[+A] extends IO[A] {
+    case Succeed(result: A) extends Op[A]
+    case Attempt(result: () => A) extends Op[A]
+    case FlatMap[A0, A](io: IO[A0], cont: A0 => IO[A]) extends Op[A]
+  }
+}
+```
+
+---
+
+# Implementing Same Methods as Before
+
+```scala
+trait IO[+A] {
+  def flatMap[B](cont: A => IO[B]): IO[B] =
+    Op.FlatMap(this, cont)
+    
+  def map[B](trans: A => B): IO[B] =
+    this.flatMap(a => IO.succeed(trans(a)))
+}
+
+object IO {
+  def succeed[A](a: A): IO[A] = Op.Succeed(a)
+  def attempt[A](a: => A): IO[A] = Op.Attempt(() => a)
+}
+```
+
+---
+
+# Interpreting with Better Stack Safety
+
+```scala
+object Runtime {
+  def unsafeRun[A](io: IO[A]): A = {
+    io match {
+      case Op.Succeed(result: A) => result
+      case Op.Attempt(result: (() => A)) => result()
+
+      case Op.FlatMap(ioA0: IO[Any], cont: (Any => IO[A])) =>
+        val a0 = /* RECURSE */ unsafeRun(ioA0)
+        val ioA = cont(a0)
+        val a = /* RECURSE (tail call) */ unsafeRun(ioA)
+        a
+    }
+  }
+}
+```
+
+---
+
+> Harder, Better, Faster, Stronger
+-- Daft Punk
+
+---
+
+# What About Real Life Applications?
+
+* What we could possibly dream of for **real life applications**
+  - Support for **asynchronicity**, **concurrency** and  **interruptibility**
+  - Consistent **error model** (expected vs. unexpected)
+  - **Resiliency** and **resource safety**
+  - Full **testability** with dependency injection
+  - Easy **debugging**
+  - **Performance** and **stack safety**
+  - And still fully functional with **100 % safe refactorings**
+
+* _ZIO_, an easy to use Scala library, gives it to us!
