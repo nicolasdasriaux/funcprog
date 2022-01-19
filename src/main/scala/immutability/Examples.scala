@@ -160,8 +160,8 @@ def run(): Unit = {
       println(s"maybeTitle=$maybeTitle")
 
       val displayedTitle: String = maybeTitle
-        .map(_.toUpperCase.nn) // Transform value, as present
-        .getOrElse("<No Title>") // Get value, as present
+        .map(_.toUpperCase.nn) // // Does nothing, as absent
+        .getOrElse("<No Title>") // Returns default value, as absent
 
       println(s"displayedTitle = $displayedTitle")
     }
