@@ -1,8 +1,8 @@
 autoscale: true
-footer: Practical Immutability
+footer: Practical Functional Programming - Immutability
 slidenumbers: true
 
-# Practical
+# Practical Functional Programming
 # [fit] **Immutability**
 ## in Scala
 
@@ -25,7 +25,11 @@ slidenumbers: true
 # Declaring an Immutable Class
 
 ```scala
-case class Customer(id: Int, firstName: String, lastName: String)
+case class Customer(
+                     id: Int,
+                     firstName: String,
+                     lastName: String
+                   )
 ```
 
 ---
@@ -34,6 +38,8 @@ case class Customer(id: Int, firstName: String, lastName: String)
 
 ```scala
 val customer = Customer(id = 1, firstName = "John", lastName = "Doe")
+
+val name = customer.firstName
 ```
 
 ---
@@ -98,13 +104,14 @@ case class Customer(id: Int, firstName: String, lastName: String) {
 val customer1 = Customer(id = 1, firstName = "John", lastName = "Doe")
 val customer2 = Customer(id = 1, firstName = "John", lastName = "Doe")
 
-assert(customer1 == customer2) // Same attributes (calls equals())
+assert(!(customer1 eq customer2)) // Different by reference
+assert(customer1 == customer2) // Same by value (calls equals)
 assert(customer1.hashCode == customer2.hashCode)
 
 val customer3 = Customer(id = 1, firstName = "Paul", lastName = "Martin")
 
-assert(customer1 != customer3) // Different attributes (calls equals)
-assert(customer1.hashCode != customer3.hashCode) // Most likely
+assert(customer1 != customer3) // Different by value (calls equals)
+assert(customer1.hashCode != customer3.hashCode) // Not a general property!
 ```
 
 ---
@@ -145,20 +152,13 @@ Customer(1,John,Doe)
 
 ---
 
-# Scala prevents absence of attributes at creation
+# Scala prevents <br>absence of attributes at creation
 
 ```scala
 val customer = Customer(id = 1, lastName = "Doe")
 ```
 
 Will fail to compile
-
-```
--- Error: /Users/nicolasdasriaux/Development/presentations/funcprog/src/main/scala/immutability/Examples.scala:53:29 
-53 |      val customer = Customer(id = 1, lastName = "Doe")
-   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-   |missing argument for parameter firstName of method apply in object Customer: (id: Int, firstName: String, lastName: String): Customer
-```
 
 ---
 
@@ -168,15 +168,13 @@ Will fail to compile
 val customer = Customer(id = 1, firstName = null, lastName = "Doe")
 ```
 
-Will will fail to compile
+and
 
+```scala
+customer.copy(firstName = null)
 ```
--- [E007] Type Mismatch Error: /Users/nicolasdasriaux/Development/presentations/funcprog/src/main/scala/immutability/Examples.scala:58:50 
-58 |      val customer = Customer(id = 1, firstName = null, lastName = "Doe")
-   |                                                  ^^^^
-   |                                                  Found:    Null
-   |                                                  Required: String
-```
+
+Will fail to compile
 
 ---
 
@@ -192,7 +190,7 @@ Will will fail to compile
 * Immutable collections **compare by value**
   - Scala implements `.equals(other)` and `.hashCode()` consistently :thumbsup:
 * In principle, they **should not accept `null`** as element
-  - but Scala does :imp:
+  - Scala will prevent inconsistent use of `null` (compiler option) :thumbsup:
 * Immutable collections are special efficient data structures called **persistent data structures**
 
 ---
@@ -292,8 +290,7 @@ Map(2 -> JOHN, 3 -> MARY, 4 -> KATE, 5 -> BART)
 
 ---
 
-# Immutable Option Type
-## with _Vavr_
+# Immutable Option
 
 ---
 
@@ -302,7 +299,7 @@ Map(2 -> JOHN, 3 -> MARY, 4 -> KATE, 5 -> BART)
 * An option type is a generic type such as Scala `Option[T]` that models the **presence** or the **absence** of a value of type `T`.
 * Options **compare by value** :thumbsup:
 * In principle, options **should not accept `null`** as present value
-  - but Scala does :imp:
+  - Scala will prevent inconsistent use of `null` (compiler option) :thumbsup:
 
 ___
 
@@ -310,7 +307,6 @@ ___
 
 ```scala
 val maybeTitle: Option[String] = Some("Mister")
-
 
 val displayedTitle: String = maybeTitle
         .map(_.toUpperCase.nn) // Transform value, as present
@@ -343,21 +339,165 @@ val displayedTitle: String = maybeTitle
 
 ---
 
-# Bridging with Nullable
+# Scala prevents `null` option
 
-From nullable to `Option`
-
-```java
-final Option<String> maybeTitle =
-        Option.of(nullableTitle);
+```scala
+val maybeTitle: Option[String] = Some(null)
 ```
 
-From `Option` to nullable
+Will not compile
 
-```java
-final String nullableTitle =
-        maybeTitle.getOrNull();
+---
+
+# Immutable<br>from Classes to Collections
+
+---
+
+# `Customer` with an Optional Titles
+
+```scala
+case class Customer(
+                     id: Int,
+                     title: Option[String],
+                     firstName: String,
+                     lastName: String
+                   )
 ```
 
 ---
+
+# Creating a `Customer` without a Title
+
+```scala
+val customer = Customer(id = 1, title = None, firstName = "John", lastName = "Doe")
+````
+
+Will print as
+```
+Customer(1,None,John,Doe)
+```
+
+---
+
+# Creating a `Customer` with a Title
+
+```scala
+val customer = Customer(id = 1, title = Some("Mr"), firstName = "Paul", lastName = "Smith")
+```
+
+Will print as
+```
+Customer(1,Some(Mr),John,Doe)
+```
+
+---
+
+# Unsetting Optional Title
+
+```scala
+customer.copy(title = None)
+```
+
+---
+
+# Setting Optional Title
+
+```scala
+customer.copy(title = Some("Miss"), firstName = "Paula")
+```
+
+---
+
+# `TodoList` class
+
+```scala
+case class TodoList(
+                     name: String, 
+                     todos: IndexedSeq[Todo] = IndexedSeq.empty
+                   ) {
+  // ...
+}
+```
+
+---
+
+# `Todo` class
+
+```scala
+case class Todo(id: Int, name: String, done: Boolean = false) {
+  def markAsDone(): Todo =
+    this.copy(done = true)
+}
+```
+
+---
+
+# Adding and Removing `Todo`
+
+```scala
+case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
+  // ...
+  def addTodo(todo: Todo): TodoList =
+    this.copy(todos = this.todos :+ todo)
+
+  def removeTodo(todoId: Int): TodoList = {
+    val todoIndex = this.todos.indexWhere(_.id == todoId)
+    
+    if (todoIndex >= 0) {
+      val modifiedTodos = this.todos.patch(todoIndex, IndexedSeq.empty, 1)
+      this.copy(todos = modifiedTodos)
+    } else this
+  }
+  // ...
+}
+```
+
+---
+
+# Marking `Todo` as Done
+
+```scala
+case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
+  // ...
+  def markTodoAsDone(todoId: Int): TodoList = {
+    val todoIndex = this.todos.indexWhere(_.id == todoId)
+
+    if (todoIndex >= 0) {
+      val todo = this.todos(todoIndex)
+      val modifiedTodos = this.todos.updated(todoIndex, todo.markAsDone())
+      this.copy(todos = modifiedTodos)
+    } else this
+  }
+}
+```
+
+---
+
+# Counting Pending and Done `Todo`s
+
+```scala
+case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
+  def pendingCount: Int = this.todos.count(!_.done)
+  def doneCount: Int = this.todos.count(_.done)
+
+  // ...
+}
+```
+
+---
+
+# Creating and Manipulating `TodoList`
+
+```scala
+val todoList = TodoList("Food")
+        .addTodo(Todo(1, "Leek"))
+        .addTodo(Todo(2, "Turnip"))
+        .addTodo(Todo(3, "Cabbage"))
+
+val modifiedTodoList = todoList
+        .markTodoAsDone(3)
+        .removeTodo(2)
+
+val doneCount = modifiedTodoList.doneCount
+```
 

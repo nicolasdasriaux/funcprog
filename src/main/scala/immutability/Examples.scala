@@ -5,13 +5,18 @@ def section(name: String)(a: => Any): Unit = a
 @main
 def run(): Unit = {
   section("Immutable objects") {
-    case class Customer(id: Int, firstName: String, lastName: String) {
+    case class Customer(
+                         id: Int,
+                         firstName: String,
+                         lastName: String
+                       ) {
       def fullName: String = s"$firstName $lastName"
     }
 
     section("Create") {
       val customer = Customer(id = 1, firstName = "John", lastName = "Doe")
       println(s"customer = $customer")
+      val name = customer.firstName
     }
 
     section("Modify") {
@@ -32,14 +37,13 @@ def run(): Unit = {
       val customer1 = Customer(id = 1, firstName = "John", lastName = "Doe")
       val customer2 = Customer(id = 1, firstName = "John", lastName = "Doe")
 
-      assert(customer1 == customer2) // Same attributes
+      assert(!(customer1 eq customer2)) // Different by reference
+      assert(customer1 == customer2) // Same by value (calls equals)
       assert(customer1.hashCode == customer2.hashCode)
-
-      assert(!(customer1 eq customer2)) // Different instance
 
       val customer3 = Customer(id = 1, firstName = "Paul", lastName = "Martin")
 
-      assert(customer1 != customer3) // Different attributes
+      assert(customer1 != customer3) // Different by value (calls equals)
       assert(customer1.hashCode != customer3.hashCode) // Not a general property!
     }
 
@@ -56,6 +60,7 @@ def run(): Unit = {
 
     section("No null") {
       // val customer = Customer(id = 1, firstName = null, lastName = "Doe")
+      // customer.copy(firstName = null)
       // Does not compile
     }
   }
@@ -132,12 +137,26 @@ def run(): Unit = {
 
       println(s"idToName = $idToName")
 
-      val updatedIdToName: Map[Int, String] = idToName
-        .removed(1) // Remove entry with key 1
-        .updated(5, "Bart") // Add entry
-        .map((k, v) => (k, v.toUpperCase.nn)) // Value to upper case
+      section("Aplhabetic") {
+        val updatedIdToName: Map[Int, String] = idToName
+          .removed(1) // Remove entry with key 1
+          .updated(5, "Bart") // Add entry
+          .map((k, v) => (k, v.toUpperCase.nn)) // Value to upper case
 
-      println(s"updatedIdToName = $updatedIdToName")
+        println(s"updatedIdToName = $updatedIdToName")
+      }
+
+      section("Symbolic") {
+        val updatedIdToName: Map[Int, String] =
+          (
+            idToName
+           - 1 // Remove entry with key 1
+           + (5 -> "Bart") // Add entry
+          )
+          .map((k, v) => (k, v.toUpperCase.nn)) // Value to upper case
+
+        println(s"updatedIdToName = $updatedIdToName")
+      }
     }
   }
 
@@ -167,9 +186,36 @@ def run(): Unit = {
     }
 
     section("Option attribute") {
-      case class Customer(id: Int, title: Option[String], firstName: String, lastName: String)
-      val customer = Customer(id = 1, title = Some("Mr"), firstName = "John", lastName = "Doe")
-      println(s"customer=$customer")
+      case class Customer(
+                           id: Int,
+                           title: Option[String],
+                           firstName: String,
+                           lastName: String
+                         )
+
+      section("creating") {
+        section("with title") {
+          val customer = Customer(id = 1, title = Some("Mr"), firstName = "John", lastName = "Doe")
+          println(s"customer=$customer")
+        }
+
+        section("without title") {
+          val customer = Customer(id = 1, title = None, firstName = "John", lastName = "Doe")
+          println(s"customer=$customer")
+        }
+      }
+
+      section("modifying") {
+        val customer = Customer(id = 1, title = Some("Mr"), firstName = "John", lastName = "Doe")
+
+        section("unsetting title") {
+          customer.copy(title = None)
+        }
+
+        section("setting title") {
+          customer.copy(title = Some("Miss"), firstName = "Paula")
+        }
+      }
     }
   }
 
@@ -189,9 +235,12 @@ def run(): Unit = {
         this.copy(done = true)
     }
 
-    case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
-      def pendingCount: Int = this.todos.count(!_.done)
+    case class TodoList(
+                         name: String,
+                         todos: IndexedSeq[Todo] = IndexedSeq.empty
+                       ) {
 
+      def pendingCount: Int = this.todos.count(!_.done)
       def doneCount: Int = this.todos.count(_.done)
 
       def addTodo(todo: Todo): TodoList =
@@ -211,8 +260,8 @@ def run(): Unit = {
 
         if (todoIndex >= 0) {
           val todo = this.todos(todoIndex)
-          val modifiedTodo = todo.markAsDone()
-          this.copy(todos = this.todos.updated(todoIndex, modifiedTodo))
+          val modifiedTodos = this.todos.updated(todoIndex, todo.markAsDone())
+          this.copy(todos = modifiedTodos)
         } else this
       }
     }
@@ -285,7 +334,7 @@ def run(): Unit = {
     }
 
     section("Block") {
-      def signal(a: Int, b: Int, t: Int) = {
+      def signal(a: Int, b: Int, t: Int): Int = {
         val y = a * t
 
         if y < -b then -b
