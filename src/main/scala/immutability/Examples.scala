@@ -334,11 +334,15 @@ def run(): Unit = {
     }
 
     section("Block") {
-      def signal(a: Int, b: Int, t: Int): Int = {
-        val y = a * t
+      val slope: Int = 2 // ???
+      val threshold: Int = 10 // ???
+      val t: Int = 2 // ???
 
-        if y < -b then -b
-        else if y > b then b
+      {
+        val y = slope * t
+
+        if y < -threshold then -threshold
+        else if y > threshold then threshold
         else y
       }
     }
@@ -349,15 +353,15 @@ def run(): Unit = {
       case North, South, West, East
     }
 
-    import Direction._
+    import Direction.*
 
     case class Position(x: Int, y: Int) {
       def move(direction: Direction): Position =
         direction match {
           case North => this.copy(y = this.y - 1)
           case South => this.copy(y = this.y + 1)
-          case East => this.copy(x = this.x - 1)
           case West => this.copy(x = this.x - 1)
+          case East => this.copy(x = this.x + 1)
         }
     }
 
@@ -367,9 +371,9 @@ def run(): Unit = {
       case Jump(position: Position)
     }
 
-    import Action._
+    import Action.*
 
-    val actions = Seq(
+    val actions: Seq[Action] = Seq(
       Jump(Position(5, 8)),
       Walk(North),
       Sleep,
@@ -388,9 +392,18 @@ def run(): Unit = {
     val initialPlayer = Player(Position(1, 1))
     val playerActions = Seq(Jump(Position(5, 8)), Walk(North), Sleep, Walk(East))
 
-    val finalPlayer = playerActions.foldLeft(initialPlayer)((player, action) => player.act(action))
+    val finalPlayer: Player =
+      playerActions.foldLeft(initialPlayer)(
+        (player, action) => player.act(action)
+      )
+
     println(s"finalPlayer=$finalPlayer")
-    val successivePlayers = playerActions.scanLeft(initialPlayer)((player, action) => player.act(action))
+
+    val successivePlayers: Seq[Player] =
+      playerActions.scanLeft(initialPlayer)(
+        (player, action) => player.act(action)
+      )
+
     println(s"successivePlayers=$successivePlayers")
   }
 
@@ -454,9 +467,9 @@ def run(): Unit = {
           }
         }
 
-        def updateAccount(account: Int, deltaAmount: Double): Bank = {
+        def updateAccount(account: Int, amountDelta: Double): Bank = {
           val updatedAccounts = accounts.updatedWith(account) {
-            case Some(amount) => Some(amount + deltaAmount)
+            case Some(amount) => Some(amount + amountDelta)
             case None => None
           }
 

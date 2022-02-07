@@ -349,6 +349,78 @@ Will not compile
 
 ---
 
+# Combining values with expressions
+
+---
+
+# Immutability of Variables
+
+* Immutability of **objects**
+  - Cannot mutate the fields of the object or collection
+* Immutability of **variables** (local variable, parameter, field)
+  - Cannot change the value (or reference) contained in the variable
+  - `val` vs. `var` (in Java, `final` vs. ~~`final`~~)
+  - **Parameters** are always `val`s in Scala :thumbsup:
+  - **Variables** should always be `val`s in strict functional programming :thumbsup:
+
+---
+
+# Expressions
+
+* A **value** is immutable by definition
+* An **expression** is a _formula_ that combines values together to form another value
+* Scala is an _expression based language_
+  - `if`, `match`, `try` and even `for` are expressions
+  - `{` ... `}` blocks are expressions
+  - Lambdas always expect an expression after `=>`
+  - `def`s always expect an expression after `=`
+  - `return` is considered as evil :imp:
+
+---
+
+# `if` Expression
+
+```scala
+val status = if enabled then "On" else "Off"
+```
+
+```scala
+val mood =
+  if 1 <= mark && mark <= 3 then "Bad"
+  else if mark == 4 then "OK"
+  else if 5 <= mark && mark <= 7 then "Good"
+  else ???
+```
+
+---
+
+# `match` Expression
+
+```scala
+val mark = color match {
+  case Red => 2
+  case Orange => 4
+  case Green => 6
+}
+```
+---
+
+# Block Expression
+
+```scala
+{
+  val y = slope * t
+
+  if y < -threshold then -threshold
+  else if y > threshold then threshold
+  else y
+}
+```
+
+Block evaluates to the last expression in the block
+
+---
+
 # Immutable<br>from Classes to Collections
 
 ---
@@ -501,3 +573,188 @@ val modifiedTodoList = todoList
 val doneCount = modifiedTodoList.doneCount
 ```
 
+---
+
+# Enumerations on Steroids
+
+---
+# `Direction` enumeration
+
+```scala
+enum Direction {
+  case North, South, West, East
+}
+```
+
+OK, seen that before.
+
+---
+
+# `Position` class
+
+```scala
+case class Position(x: Int, y: Int) {
+  def move(direction: Direction): Position =
+    direction match {
+      case North => this.copy(y = this.y - 1)
+      case South => this.copy(y = this.y + 1)
+      case West => this.copy(x = this.x - 1)
+      case East => this.copy(x = this.x + 1)
+    }
+}
+```
+
+---
+
+# `Action` enumeration
+
+```scala
+enum Action {
+  case Sleep
+  case Walk(direction: Direction)
+  case Jump(position: Position)
+}
+```
+
+Some alternatives can have fields :astonished:
+
+---
+
+# Sequence of `Actions`
+
+```scala
+val actions: Seq[Action] = Seq(
+  Jump(Position(5, 8)),
+  Walk(North),
+  Sleep,
+  Walk(East)
+)
+```
+---
+
+# Performing an `Action`
+
+```scala
+case class Player(position: Position) {
+  def act(action: Action): Player =
+    action match {
+      case Sleep => this
+      case Walk(direction) => Player(position.move(direction))
+      case Jump(position) => Player(position)
+    }
+}
+```
+
+---
+
+# Performing Successive `Action`s
+
+```scala
+val initialPlayer = Player(Position(1, 1))
+val playerActions = Seq(Jump(Position(5, 8)), Walk(North), Sleep, Walk(East))
+
+val finalPlayer =
+  playerActions.foldLeft(initialPlayer)(
+    (player, action) => player.act(action)
+  )
+
+val successivePlayers =
+  playerActions.scanLeft(initialPlayer)(
+    (player, action) => player.act(action)
+  )
+```
+
+* `finalPlayer` will print as `Player(Position(6,7))`
+* `successivePlayers` will print as `List(Player(Position(1,1)), Player(Position(5,8)), Player(Position(5,7)), Player(Position(5,7)), Player(Position(6,7)))`
+
+---
+
+# Algebraic Data Type
+
+* **ADT** in short
+* Somehow, **`enum` on steroids**
+  - Some alternatives might hold one or more **attributes**
+  - Attributes may vary in number and in type from one alternative to another
+
+---
+
+# Pattern Matching
+
+---
+
+# Pattern Matching with `match`
+
+* `match` is an **expression**
+* Many ways to **match a value**
+* Might **extract one or more values**
+* First match wins and gives the value of the expression
+
+---
+
+# Matching by Value and by Condition
+
+```scala
+val label = number match {
+  case 0 => "Zero"
+  case n if n < 0 => "Negative"
+  case 19 | 23 | 29 => "Chosen primes"
+  case n if n % 2 == 0 => s"Even ($n)"
+  case n => s"Odd ($n)"
+}
+```
+
+---
+
+# Matching by Pattern
+
+```scala
+val label = maybeNumber match {
+  case Some(0) => "Zero"
+  case Some(n) if n < 0 => s"Negative ($n)"
+  case Some(n) if n > 0 => s"Positive ($n)"
+  case None => "Absent"
+}
+```
+
+---
+
+# Matching by Pattern on `case class`
+
+```scala
+case class Point(x: Int, y: Int)
+
+// ...
+
+val label = point match {
+  case Point(0, 0) => "Center"
+  case Point(x, 0) => "First axis"
+  case Point(0, y) => "Second axis"
+  case Point(x, y) if x == y => "First diagonal"
+  case Point(x, y) if x == -y => "Second diagonal"
+  case p => "Other"
+}
+```
+
+---
+
+# Matching by Pattern on `enum`
+
+```scala
+enum Operation {
+  case Credit(account: Int, amount: Double)
+  case Debit(account: Int, amount: Double)
+  case Transfer(sourceAccount: Int, targetAccount: Int, amount: Double)
+}
+
+// ...
+
+case class Bank(accounts: Map[Int, Double]) {
+  def process(operation: Operation): Bank = {
+    operation match {
+      case Credit(account, amount) => ???
+      case Debit(account, amount) => ???
+      case Transfer(sourceAccount, destinationAccount, amount) => ???
+    }
+  }
+}
+```
