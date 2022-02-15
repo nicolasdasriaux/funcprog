@@ -8,6 +8,44 @@ slidenumbers: true
 
 ---
 
+# Why the Scala Language?
+
+* Combines **object-oriented** and **functional** programming
+* Compiles to and runs on the **JVM**
+* Created by **Martin Odersky** at **EPFL**
+* First release in **2004**
+* **Scala 3** has outstanding support for functional programming
+  - Concise, straightforward, streamlined
+
+
+---
+
+# What Is Functional Programming?
+
+---
+
+# Functions
+
+* Functional Programming is programming with **functions**
+* A _function_ must be
+  - **Deterministic**: same arguments implies same result
+  - **Total**: result always available for arguments, no exception
+  - **Pure**: no side-effects, only effect is computing result
+
+---
+
+# Values
+
+* A **function** manipulates values
+  - Consumes values as **arguments**
+  - produces a value as a **result**
+* **Values** are immutable instances of
+  - Primitive types
+  - Immutable classes
+* _Functions_ and _values_ are two sides of the same coin.
+
+---
+
 # Immutable Classes
 
 ---
@@ -38,32 +76,44 @@ case class Customer(
 
 ```scala
 val customer = Customer(id = 1, firstName = "John", lastName = "Doe")
+// 1 passed as argument to the `id` parameter
+// "John" passed to `firstName` parameter
+// "Doe" passed to `lastName` parameter
 
 val name = customer.firstName
 ```
 
 ---
 
-# Modifying an Instance (one attribute)
+# Modifying an Instance
 
 ```scala
+// One attribute modified
 val modifiedCustomer = customer.copy(lastName = "Martin")
+
+// Multiple attributes modified
+val modifiedCustomer = customer.copy(firstName = "Paul", lastName = "Martin")
+
 ```
 
 * Returns a **new instance** that is modified
 * Previous instance remains unchanged
-* Only **one attribute** modified
 
 ---
 
-# Modifying an Instance (multiple attributes)
+# Anatomy of generated `copy` method
 
 ```scala
-val modifiedCustomer = customer.copy(firstName = "Paul", lastName = "Martin")
+def copy(newId: Int = this.id,
+         newFirstName: String = this.firstName,
+         newLastName: String = this.lastName): Customer =
+  
+  Customer(
+    id = newId,
+    firstName = newFirstName,
+    lastName = newLastName
+  )
 ```
-
-* Several attributes modified with no intermediary instances
-* Also allows modifying **multiple attributes** that should remain **consistent** with each other
 
 ---
 
@@ -93,8 +143,6 @@ case class Customer(id: Int, firstName: String, lastName: String) {
 * Scala generates consistent
     - `.equals(other)` :thumbsup:
     - `.hashCode()` :thumbsup:
-* Can ultimately be customized by code
-* Greatly simplifies unit test assertions :thumbsup:
 
 ---
 
@@ -104,13 +152,13 @@ case class Customer(id: Int, firstName: String, lastName: String) {
 val customer1 = Customer(id = 1, firstName = "John", lastName = "Doe")
 val customer2 = Customer(id = 1, firstName = "John", lastName = "Doe")
 
-assert(!(customer1 eq customer2)) // Different by reference
-assert(customer1 == customer2) // Same by value (calls equals)
+assert(customer1 ne customer2) // Different by reference (ne)
+assert(customer1 == customer2) // Same by value (== calls equals)
 assert(customer1.hashCode == customer2.hashCode)
 
 val customer3 = Customer(id = 1, firstName = "Paul", lastName = "Martin")
 
-assert(customer1 != customer3) // Different by value (calls equals)
+assert(customer1 != customer3) // Different by value
 assert(customer1.hashCode != customer3.hashCode) // Not a general property!
 ```
 
@@ -118,19 +166,10 @@ assert(customer1.hashCode != customer3.hashCode) // Not a general property!
 
 # Printing Immutable Instance
 
-* Scala generates useful `.toString()` automatically :thumbsup:
-* Can ultimately be overridden by code
-* Simplifies logging :thumbsup:
-* Simplifies unit test debugging :thumbsup:
-    - Compare with clipboard trick
-
----
-
-# Printing Immutable Instance
-
 ```scala
 val customer = Customer(id = 1, firstName = "John", lastName = "Doe")
-println(customer.toString)
+
+println(customer)
  ```
 
 Will output something like
@@ -138,6 +177,8 @@ Will output something like
 ```
 Customer(1,John,Doe)
 ```
+
+Scala generates useful `.toString()` automatically :thumbsup:
 
 ---
 
@@ -149,32 +190,6 @@ Customer(1,John,Doe)
 * Optional attribute should be explicit using an **option type**
     - Scala `Option` is a good ... option :wink:
     - More later
-
----
-
-# Scala prevents <br>absence of attributes at creation
-
-```scala
-val customer = Customer(id = 1, lastName = "Doe")
-```
-
-Will fail to compile
-
----
-
-# Scala prevents `null` attributes
-
-```scala
-val customer = Customer(id = 1, firstName = null, lastName = "Doe")
-```
-
-and
-
-```scala
-customer.copy(firstName = null)
-```
-
-Will fail to compile
 
 ---
 
@@ -296,9 +311,11 @@ Map(2 -> JOHN, 3 -> MARY, 4 -> KATE, 5 -> BART)
 
 # Option Type
 
-* An option type is a generic type such as Scala `Option[T]` that models the **presence** or the **absence** of a value of type `T`.
+* `Option[T]` is a generic type that models
+  - the **presence** (`Some`) of a value of type `T`
+  - or its **absence** (`None`).
 * Options **compare by value** :thumbsup:
-* In principle, options **should not accept `null`** as present value
+* Options **should not accept `null`** as present value
   - Scala will prevent inconsistent use of `null` (compiler option) :thumbsup:
 
 ___
@@ -339,16 +356,6 @@ val displayedTitle: String = maybeTitle
 
 ---
 
-# Scala prevents `null` option
-
-```scala
-val maybeTitle: Option[String] = Some(null)
-```
-
-Will not compile
-
----
-
 # Combining values with expressions
 
 ---
@@ -361,7 +368,7 @@ Will not compile
   - Cannot change the value (or reference) contained in the variable
   - `val` vs. `var` (in Java, `final` vs. ~~`final`~~)
   - **Parameters** are always `val`s in Scala :thumbsup:
-  - **Variables** should always be `val`s in strict functional programming :thumbsup:
+    - **Local variables** and **fields** should always be `val`s in strict functional programming :thumbsup:
 
 ---
 
@@ -370,7 +377,7 @@ Will not compile
 * A **value** is immutable by definition
 * An **expression** is a _formula_ that combines values together to form another value
 * Scala is an _expression based language_
-  - `if`, `match`, `try` and even `for` are expressions
+  - `if`, `match`, `try` (and even `for`) are expressions
   - `{` ... `}` blocks are expressions
   - Lambdas always expect an expression after `=>`
   - `def`s always expect an expression after `=`
@@ -438,44 +445,24 @@ case class Customer(
 
 ---
 
-# Creating a `Customer` without a Title
+# Creating and Modifying a `Customer`
 
 ```scala
-val customer = Customer(id = 1, title = None, firstName = "John", lastName = "Doe")
-````
+val titledCustomer = Customer(
+  id = 1,
+  title = Some("Mr"), // with a title
+  firstName = "Paul",
+  lastName = "Smith"
+)
 
-Will print as
-```
-Customer(1,None,John,Doe)
-```
+val untitledCustomer = Customer(
+  id = 2,
+  title = None, // without a title
+  firstName = "John",
+  lastName = "Doe"
+)
 
----
-
-# Creating a `Customer` with a Title
-
-```scala
-val customer = Customer(id = 1, title = Some("Mr"), firstName = "Paul", lastName = "Smith")
-```
-
-Will print as
-```
-Customer(1,Some(Mr),John,Doe)
-```
-
----
-
-# Unsetting Optional Title
-
-```scala
-customer.copy(title = None)
-```
-
----
-
-# Setting Optional Title
-
-```scala
-customer.copy(title = Some("Miss"), firstName = "Paula")
+val modifiedCustomer = titledCustomer.copy(title = None)
 ```
 
 ---
@@ -497,7 +484,7 @@ case class TodoList(
 
 ```scala
 case class Todo(id: Int, name: String, done: Boolean = false) {
-  def markAsDone(): Todo =
+  def markAsDone: Todo =
     this.copy(done = true)
 }
 ```
@@ -536,7 +523,7 @@ case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
 
     if (todoIndex >= 0) {
       val todo = this.todos(todoIndex)
-      val modifiedTodos = this.todos.updated(todoIndex, todo.markAsDone())
+      val modifiedTodos = this.todos.updated(todoIndex, todo.markAsDone)
       this.copy(todos = modifiedTodos)
     } else this
   }
@@ -549,8 +536,8 @@ case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
 
 ```scala
 case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
-  def pendingCount: Int = this.todos.count(!_.done)
   def doneCount: Int = this.todos.count(_.done)
+  def pendingCount: Int = this.todos.count(!_.done)
 
   // ...
 }
@@ -582,7 +569,10 @@ val doneCount = modifiedTodoList.doneCount
 
 ```scala
 enum Direction {
-  case North, South, West, East
+  case North
+  case South
+  case West
+  case East
 }
 ```
 
@@ -672,6 +662,7 @@ val successivePlayers =
 # Algebraic Data Type
 
 * **ADT** in short
+* Also known as _discriminated union_
 * Somehow, **`enum` on steroids**
   - Some alternatives might hold one or more **attributes**
   - Attributes may vary in number and in type from one alternative to another
@@ -723,8 +714,6 @@ val label = maybeNumber match {
 ```scala
 case class Point(x: Int, y: Int)
 
-// ...
-
 val label = point match {
   case Point(0, 0) => "Center"
   case Point(x, 0) => "First axis"
@@ -746,8 +735,6 @@ enum Operation {
   case Transfer(sourceAccount: Int, targetAccount: Int, amount: Double)
 }
 
-// ...
-
 case class Bank(accounts: Map[Int, Double]) {
   def process(operation: Operation): Bank = {
     operation match {
@@ -758,3 +745,20 @@ case class Bank(accounts: Map[Int, Double]) {
   }
 }
 ```
+
+---
+
+# Toward Functional Design
+
+---
+
+# Functional Design
+
+* **Model data** using
+  - Immutable **primitive types**
+  - Immutable **objects** (`case class`)
+  - Immutable **collections** (`Seq`, `IndexedSeq`, `Map`, `Set`)
+  - Immutable **options** `Option`s and `enums`
+* **Compute data** using
+  - _Deterministic_, _total_ and _pure_ **functions**,
+  - **Expressions** and **pattern matching**

@@ -37,19 +37,19 @@ def run(): Unit = {
       val customer1 = Customer(id = 1, firstName = "John", lastName = "Doe")
       val customer2 = Customer(id = 1, firstName = "John", lastName = "Doe")
 
-      assert(!(customer1 eq customer2)) // Different by reference
-      assert(customer1 == customer2) // Same by value (calls equals)
+      assert(customer1 ne customer2) // Different by reference (ne)
+      assert(customer1 == customer2) // Same by value (== calls equals)
       assert(customer1.hashCode == customer2.hashCode)
 
       val customer3 = Customer(id = 1, firstName = "Paul", lastName = "Martin")
 
-      assert(customer1 != customer3) // Different by value (calls equals)
+      assert(customer1 != customer3) // Different by value
       assert(customer1.hashCode != customer3.hashCode) // Not a general property!
     }
 
     section("toString") {
       val customer = Customer(id = 1, firstName = "John", lastName = "Doe")
-      println(customer.toString)
+      println(customer)
       // Customer(1,John,Doe)
     }
 
@@ -195,25 +195,28 @@ def run(): Unit = {
 
       section("creating") {
         section("with title") {
-          val customer = Customer(id = 1, title = Some("Mr"), firstName = "John", lastName = "Doe")
-          println(s"customer=$customer")
+          val titledCustomer = Customer(id = 1, title = Some("Mr"), firstName = "John", lastName = "Doe")
+          println(s"titledCustomer = $titledCustomer")
         }
 
         section("without title") {
-          val customer = Customer(id = 1, title = None, firstName = "John", lastName = "Doe")
-          println(s"customer=$customer")
+          val untitledCustomer = Customer(id = 1, title = None, firstName = "John", lastName = "Doe")
+          println(s"untitledCustomer = $untitledCustomer")
         }
       }
 
       section("modifying") {
-        val customer = Customer(id = 1, title = Some("Mr"), firstName = "John", lastName = "Doe")
+        val titledCustomer = Customer(id = 1, title = Some("Mr"), firstName = "John", lastName = "Doe")
+        val untitledCustomer = Customer(id = 1, title = None, firstName = "John", lastName = "Doe")
 
         section("unsetting title") {
-          customer.copy(title = None)
+          val modifiedCustomer = titledCustomer.copy(title = None)
+          println(s"modifiedCustomer = $modifiedCustomer")
         }
 
         section("setting title") {
-          customer.copy(title = Some("Miss"), firstName = "Paula")
+          val modifiedCustomer = untitledCustomer.copy(title = Some("Miss"), firstName = "Paula")
+          println(s"modifiedCustomer = $modifiedCustomer")
         }
       }
     }
@@ -231,7 +234,7 @@ def run(): Unit = {
     }
 
     case class Todo(id: Int, name: String, done: Boolean = false) {
-      def markAsDone(): Todo =
+      def markAsDone: Todo =
         this.copy(done = true)
     }
 
@@ -240,8 +243,8 @@ def run(): Unit = {
                          todos: IndexedSeq[Todo] = IndexedSeq.empty
                        ) {
 
-      def pendingCount: Int = this.todos.count(!_.done)
       def doneCount: Int = this.todos.count(_.done)
+      def pendingCount: Int = this.todos.count(!_.done)
 
       def addTodo(todo: Todo): TodoList =
         this.copy(todos = this.todos :+ todo)
@@ -260,7 +263,7 @@ def run(): Unit = {
 
         if (todoIndex >= 0) {
           val todo = this.todos(todoIndex)
-          val modifiedTodos = this.todos.updated(todoIndex, todo.markAsDone())
+          val modifiedTodos = this.todos.updated(todoIndex, todo.markAsDone)
           this.copy(todos = modifiedTodos)
         } else this
       }
@@ -310,7 +313,7 @@ def run(): Unit = {
         case Red, Orange, Green
       }
 
-      import Color._
+      import Color.*
 
       val color: Color = Red // ???
 
@@ -350,7 +353,10 @@ def run(): Unit = {
 
   section("ADT") {
     enum Direction {
-      case North, South, West, East
+      case North
+      case South
+      case West
+      case East
     }
 
     import Direction.*
@@ -453,7 +459,7 @@ def run(): Unit = {
         case Transfer(sourceAccount: Int, targetAccount: Int, amount: Double)
       }
 
-      import Operation._
+      import Operation.*
 
       case class Bank(accounts: Map[Int, Double]) {
         def process(operation: Operation): Bank = {
