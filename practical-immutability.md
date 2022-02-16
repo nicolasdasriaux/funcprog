@@ -101,22 +101,6 @@ val modifiedCustomer = customer.copy(firstName = "Paul", lastName = "Martin")
 
 ---
 
-# Anatomy of generated `copy` method
-
-```scala
-def copy(newId: Int = this.id,
-         newFirstName: String = this.firstName,
-         newLastName: String = this.lastName): Customer =
-  
-  Customer(
-    id = newId,
-    firstName = newFirstName,
-    lastName = newLastName
-  )
-```
-
----
-
 # Calculating an Attribute from Other Attributes
 
 ```scala
@@ -182,17 +166,6 @@ Scala generates useful `.toString()` automatically :thumbsup:
 
 ---
 
-# Preventing `null` attributes
-
-* Attributes should never be `null`
-    - `null` is evil! :smiling_imp:
-* Scala will reject `null` (compiler option) :thumbsup:
-* Optional attribute should be explicit using an **option type**
-    - Scala `Option` is a good ... option :wink:
-    - More later
-
----
-
 # Immutable Collections
 
 ---
@@ -204,8 +177,6 @@ Scala generates useful `.toString()` automatically :thumbsup:
   - and keep the **original collection unchanged**
 * Immutable collections **compare by value**
   - Scala implements `.equals(other)` and `.hashCode()` consistently :thumbsup:
-* In principle, they **should not accept `null`** as element
-  - Scala will prevent inconsistent use of `null` (compiler option) :thumbsup:
 * Immutable collections are special efficient data structures called **persistent data structures**
 
 ---
@@ -240,26 +211,6 @@ val availableIds: Seq[String] =
 
 ```
 List(#0, #2, #4, #6)
-```
-
----
-
-# Immutable Indexed Sequence
-
-```scala
-val commands: IndexedSeq[String] =
-  IndexedSeq("command", "ls", "pwd", "cd", "man")
-
-val availableCommands: IndexedSeq[String] =
-  commands
-    .tail // Drop head of list keeping only tail
-    .filter(_ != "man"); // Remove man command
-```
-
-`availableCommands` will print as
-
-```
-Vector(ls, pwd, cd)
 ```
 
 ---
@@ -312,11 +263,9 @@ Map(2 -> JOHN, 3 -> MARY, 4 -> KATE, 5 -> BART)
 # Option Type
 
 * `Option[T]` is a generic type that models
-  - the **presence** (`Some`) of a value of type `T`
-  - or its **absence** (`None`).
+  - the **presence** of a value of type `T`
+  - or its **absence**.
 * Options **compare by value** :thumbsup:
-* Options **should not accept `null`** as present value
-  - Scala will prevent inconsistent use of `null` (compiler option) :thumbsup:
 
 ___
 
@@ -356,7 +305,7 @@ val displayedTitle: String = maybeTitle
 
 ---
 
-# Combining values with expressions
+# Combining Values with Expressions
 
 ---
 
@@ -366,7 +315,7 @@ val displayedTitle: String = maybeTitle
   - Cannot mutate the fields of the object or collection
 * Immutability of **variables** (local variable, parameter, field)
   - Cannot change the value (or reference) contained in the variable
-  - `val` vs. `var` (in Java, `final` vs. ~~`final`~~)
+  - `val` vs. `var` (`final` vs. ~~`final`~~ in Java)
   - **Parameters** are always `val`s in Scala :thumbsup:
     - **Local variables** and **fields** should always be `val`s in strict functional programming :thumbsup:
 
@@ -431,8 +380,7 @@ Block evaluates to the last expression in the block
 # Immutable<br>from Classes to Collections
 
 ---
-
-# `Customer` with an Optional Titles
+# `Customer` with an Optional Title
 
 ```scala
 case class Customer(
@@ -445,7 +393,7 @@ case class Customer(
 
 ---
 
-# Creating and Modifying a `Customer`
+# Creating and Modifying a `Customer` with Optional Title
 
 ```scala
 val titledCustomer = Customer(
