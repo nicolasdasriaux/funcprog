@@ -393,7 +393,7 @@ case class Customer(
 
 ---
 
-# Creating and Modifying a `Customer` with Optional Title
+# [fit] Creating and Modifying a `Customer` with Optional Title
 
 ```scala
 val titledCustomer = Customer(
