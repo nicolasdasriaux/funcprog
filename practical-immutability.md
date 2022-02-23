@@ -8,7 +8,7 @@ slidenumbers: true
 
 ---
 
-# Why the Scala Language?
+# Why the ![inline 12 %](scala.png)Scala Language?
 
 * Combines **object-oriented** and **functional** programming
 * Compiles to and runs on the **JVM**
@@ -16,7 +16,6 @@ slidenumbers: true
 * First release in **2004**
 * **Scala 3** has outstanding support for functional programming
   - Concise, straightforward, streamlined
-
 
 ---
 
@@ -38,11 +37,11 @@ slidenumbers: true
 
 * A **function** manipulates values
   - Consumes values as **arguments**
-  - produces a value as a **result**
+  - Produces a value as a **result**
 * **Values** are immutable instances of
   - Primitive types
   - Immutable classes
-* _Functions_ and _values_ are two sides of the same coin.
+* _Functions_ and _values_ are two sides of the same coin
 
 ---
 
@@ -98,6 +97,10 @@ val modifiedCustomer = customer.copy(firstName = "Paul", lastName = "Martin")
 
 * Returns a **new instance** that is modified
 * Previous instance remains unchanged
+
+---
+
+![inline](structural-sharing.png)
 
 ---
 
@@ -345,7 +348,7 @@ val mood =
   if 1 <= mark && mark <= 3 then "Bad"
   else if mark == 4 then "OK"
   else if 5 <= mark && mark <= 7 then "Good"
-  else ???
+  else ??? // Should never happen, fails
 ```
 
 ---
@@ -364,7 +367,7 @@ val mark = color match {
 # Block Expression
 
 ```scala
-{
+val altitude = {
   val y = slope * t
 
   if y < -threshold then -threshold
@@ -439,17 +442,29 @@ case class Todo(id: Int, name: String, done: Boolean = false) {
 
 ---
 
-# Adding and Removing `Todo`
+# Adding a `Todo`
 
 ```scala
 case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
   // ...
-  def addTodo(todo: Todo): TodoList =
-    this.copy(todos = this.todos :+ todo)
+  def addTodo(todo: Todo): TodoList = {
+    val modifiedTodos = this.todos :+ todo
+    this.copy(todos = modifiedTodos)
+  }
+  // ...
+}
+```
 
+---
+
+# Removing a `Todo`
+
+```scala
+case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
+  // ...
   def removeTodo(todoId: Int): TodoList = {
     val todoIndex = this.todos.indexWhere(_.id == todoId)
-    
+
     if (todoIndex >= 0) {
       val modifiedTodos = this.todos.patch(todoIndex, IndexedSeq.empty, 1)
       this.copy(todos = modifiedTodos)
@@ -471,7 +486,8 @@ case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
 
     if (todoIndex >= 0) {
       val todo = this.todos(todoIndex)
-      val modifiedTodos = this.todos.updated(todoIndex, todo.markAsDone)
+      val modifiedTodo = todo.markAsDone
+      val modifiedTodos = this.todos.updated(todoIndex, modifiedTodo)
       this.copy(todos = modifiedTodos)
     } else this
   }
@@ -486,7 +502,6 @@ case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
 case class TodoList(name: String, todos: IndexedSeq[Todo] = IndexedSeq.empty) {
   def doneCount: Int = this.todos.count(_.done)
   def pendingCount: Int = this.todos.count(!_.done)
-
   // ...
 }
 ```
@@ -703,10 +718,11 @@ case class Bank(accounts: Map[Int, Double]) {
 # Functional Design
 
 * **Model data** using
-  - Immutable **primitive types**
+  - Immutable **primitive types** (`Int`, `Double`, `Boolean`...)
   - Immutable **objects** (`case class`)
   - Immutable **collections** (`Seq`, `IndexedSeq`, `Map`, `Set`)
-  - Immutable **options** `Option`s and `enums`
+  - Immutable **options** (`Option`)
+  - Immutable **enumerations** aka _ADT_ (`enum`)
 * **Compute data** using
-  - _Deterministic_, _total_ and _pure_ **functions**,
+  - _Deterministic_, _total_ and _pure_ **functions**
   - **Expressions** and **pattern matching**

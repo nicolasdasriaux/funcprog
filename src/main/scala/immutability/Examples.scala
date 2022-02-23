@@ -246,8 +246,10 @@ def run(): Unit = {
       def doneCount: Int = this.todos.count(_.done)
       def pendingCount: Int = this.todos.count(!_.done)
 
-      def addTodo(todo: Todo): TodoList =
-        this.copy(todos = this.todos :+ todo)
+      def addTodo(todo: Todo): TodoList = {
+        val modifiedTodos = this.todos :+ todo
+        this.copy(todos = modifiedTodos)
+      }
 
       def removeTodo(todoId: Int): TodoList = {
         val todoIndex = this.todos.indexWhere(_.id == todoId)
@@ -263,7 +265,8 @@ def run(): Unit = {
 
         if (todoIndex >= 0) {
           val todo = this.todos(todoIndex)
-          val modifiedTodos = this.todos.updated(todoIndex, todo.markAsDone)
+          val modifiedTodo = todo.markAsDone
+          val modifiedTodos = this.todos.updated(todoIndex, modifiedTodo)
           this.copy(todos = modifiedTodos)
         } else this
       }
@@ -302,7 +305,7 @@ def run(): Unit = {
           if 1 <= mark && mark <= 3 then "Bad"
           else if mark == 4 then "OK"
           else if 5 <= mark && mark <= 7 then "Good"
-          else ???
+          else ??? // Should never happen, fails
 
         println(s"mood=$mood")
       }
@@ -341,7 +344,7 @@ def run(): Unit = {
       val threshold: Int = 10 // ???
       val t: Int = 2 // ???
 
-      {
+      val altitude = {
         val y = slope * t
 
         if y < -threshold then -threshold
