@@ -55,7 +55,7 @@ slidenumbers: true
 * **Methods** do not modify the object but return a **new object** with the modifications applied instead
 * For an immutable class, Scala generates
   - a constructor to create instance :thumbsup:
-  - a `copy` method to modify instances :thumbsup:
+  - a `copy` method to modify instance :thumbsup:
 
 ---
 
@@ -75,11 +75,13 @@ case class Customer(
 
 ```scala
 val customer = Customer(id = 1, firstName = "John", lastName = "Doe")
+// No need for `new` keyword 
 // 1 passed as argument to the `id` parameter
 // "John" passed to `firstName` parameter
 // "Doe" passed to `lastName` parameter
 
 val name = customer.firstName
+// No need for () but this is a method
 ```
 
 ---
@@ -279,6 +281,8 @@ val maybeTitle: Option[String] = Some("Mister")
 
 val displayedTitle: String = maybeTitle
         .map(_.toUpperCase.nn) // Transform value, as present
+        // Equivalent to:
+        // .map(title => title.toUpperCase.nn)
         .getOrElse("<No Title>") // Get value, as present
 ```
 
@@ -610,15 +614,9 @@ val finalPlayer =
   playerActions.foldLeft(initialPlayer)(
     (player, action) => player.act(action)
   )
-
-val successivePlayers =
-  playerActions.scanLeft(initialPlayer)(
-    (player, action) => player.act(action)
-  )
 ```
 
-* `finalPlayer` will print as `Player(Position(6,7))`
-* `successivePlayers` will print as `List(Player(Position(1,1)), Player(Position(5,8)), Player(Position(5,7)), Player(Position(5,7)), Player(Position(6,7)))`
+`finalPlayer` will print as `Player(Position(6,7))`
 
 ---
 
