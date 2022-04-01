@@ -1,4 +1,73 @@
 package io {
+  package immutability {
+    extension[K, V] (self: Map[K, V]) {
+      def updatedWith[V2 >: V](key: K, f: V => V2): Map[K, V2] =
+        self.updatedWith(key) {
+          case Some(v) => Some(f(v))
+          case None => None
+        }
+    }
+
+    enum Operation {
+      case Credit(account: Int, amount: Double)
+      case Debit(account: Int, amount: Double)
+      case Transfer(sourceAccount: Int, destinationAccount: Int, amount: Double)
+    }
+
+    import Operation.*
+
+    case class Bank(accounts: Map[Int, Double], totalAmount: Double) {
+      def process(operation: Operation): Bank = {
+        operation match {
+          case Credit(account, amount) =>
+            Bank(
+              accounts = this.accounts.updatedWith(account, _ + amount),
+              totalAmount = this.totalAmount + amount
+            )
+
+          case Debit(account, amount) =>
+            Bank(
+              accounts = accounts.updatedWith(account, _ - amount),
+              totalAmount = this.totalAmount - amount
+            )
+
+          case Transfer(sourceAccount, destinationAccount, amount) =>
+            this.copy(
+              accounts = this.accounts
+                .updatedWith(sourceAccount, _ - amount)
+                .updatedWith(destinationAccount, _ + amount)
+            )
+        }
+      }
+    }
+
+    object Bank {
+      def apply(accounts: Map[Int, Double]): Bank =
+        Bank(
+          accounts = accounts,
+          totalAmount =  accounts.values.sum
+        )
+    }
+
+    object BankApp {
+      def main(args: Array[String]): Unit = {
+        val bank = Bank(
+          Map(
+            1 -> 100.0,
+            2 -> 200.0
+          )
+        )
+
+        val finalBank = bank
+          .process(Credit(account = 1, amount = 30.0))
+          .process(Debit(account = 2, amount = 10.0))
+          .process(Transfer(sourceAccount = 1, destinationAccount = 2, amount = 10.0))
+
+        println(s"finalBank = $finalBank")
+      }
+    }
+  }
+
   package impure {
     import io.impure.Console
 

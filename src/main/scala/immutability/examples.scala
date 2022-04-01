@@ -1,6 +1,15 @@
 package immutability
 
-def section(name: String)(a: => Any): Unit = a
+def section(name: String)(example: => Any): Unit = {
+  println("=" * name.length)
+  println(name)
+  println("=" * name.length)
+  println()
+
+  example
+
+  println()
+}
 
 @main
 def run(): Unit = {
@@ -15,7 +24,7 @@ def run(): Unit = {
 
     section("Create") {
       val customer = Customer(id = 1, firstName = "John", lastName = "Doe")
-      println(s"customer = $customer")
+      println(s"customer=$customer")
       val name = customer.firstName
     }
 
@@ -24,12 +33,12 @@ def run(): Unit = {
 
       section("Modify single attribute") {
         val modifiedCustomer = customer.copy(lastName = "Martin")
-        println(s"modifiedCustomer = $modifiedCustomer")
+        println(s"modifiedCustomer=$modifiedCustomer")
       }
 
       section("Modify multiple attributes") {
         val modifiedCustomer = customer.copy(firstName = "Paul", lastName = "Martin")
-        println(s"modifiedCustomer = $modifiedCustomer")
+        println(s"modifiedCustomer=$modifiedCustomer")
       }
     }
 
@@ -69,7 +78,7 @@ def run(): Unit = {
     section("Seq") {
       val ids: Seq[Int] = Seq(1, 2, 3, 4, 5)
 
-      println(s"ids = $ids")
+      println(s"ids=$ids")
 
       section("Alphabetic") {
         val availableIds: Seq[String] = ids
@@ -78,7 +87,7 @@ def run(): Unit = {
           .filter(i => i % 2 == 0) // Keep only even numbers
           .map(i => "#" + i) // Transform to rank
 
-        println(s"availableIds = $availableIds")
+        println(s"availableIds=$availableIds")
       }
 
       section("Symbolic") {
@@ -89,7 +98,7 @@ def run(): Unit = {
             .filter(i => i % 2 == 0) // Keep only even numbers
             .map(i => "#" + i) // Transform to rank
 
-        println(s"availableIds = $availableIds")
+        println(s"availableIds=$availableIds")
       }
     }
 
@@ -97,33 +106,33 @@ def run(): Unit = {
       val commands: IndexedSeq[String] =
         IndexedSeq("command", "ls", "pwd", "cd", "man")
 
-      println(s"commands = $commands")
+      println(s"commands=$commands")
 
       val availableCommands: IndexedSeq[String] =
         commands
           .tail // Drop head of list keeping only tail
           .filter(_ != "man"); // Remove man command
 
-      println(s"availableCommands = $availableCommands")
+      println(s"availableCommands=$availableCommands")
     }
 
     section("Set") {
       val greetings: Set[String] = Set("hello", "goodbye")
 
-      println(s"greetings = $greetings")
+      println(s"greetings=$greetings")
 
       section("Alphabetic") {
         val availableGreetings =
           greetings.concat(Set("hi", "bye", "hello")) // Add more greetings
 
-        println(s"availableGreetings = $availableGreetings")
+        println(s"availableGreetings=$availableGreetings")
       }
 
       section("Symbolic") {
         val availableGreetings =
           greetings ++ Set("hi", "bye", "hello") // Add more greetings
 
-        println(s"availableGreetings = $availableGreetings")
+        println(s"availableGreetings=$availableGreetings")
       }
     }
 
@@ -135,7 +144,7 @@ def run(): Unit = {
         4 -> "Kate"
       )
 
-      println(s"idToName = $idToName")
+      println(s"idToName=$idToName")
 
       section("Aplhabetic") {
         val updatedIdToName: Map[Int, String] = idToName
@@ -143,19 +152,19 @@ def run(): Unit = {
           .updated(5, "Bart") // Add entry
           .map((k, v) => (k, v.toUpperCase.nn)) // Value to upper case
 
-        println(s"updatedIdToName = $updatedIdToName")
+        println(s"updatedIdToName=$updatedIdToName")
       }
 
       section("Symbolic") {
         val updatedIdToName: Map[Int, String] =
           (
             idToName
-           - 1 // Remove entry with key 1
-           + (5 -> "Bart") // Add entry
+              - 1 // Remove entry with key 1
+              + (5 -> "Bart") // Add entry
           )
           .map((k, v) => (k, v.toUpperCase.nn)) // Value to upper case
 
-        println(s"updatedIdToName = $updatedIdToName")
+        println(s"updatedIdToName=$updatedIdToName")
       }
     }
   }
@@ -170,7 +179,7 @@ def run(): Unit = {
         .map(_.toUpperCase.nn) // Transform value, as present
         .getOrElse("<No Title>") // Get value, as present
 
-      println(s"displayedTitle = $displayedTitle")
+      println(s"displayedTitle=$displayedTitle")
     }
 
     section("None") {
@@ -182,7 +191,7 @@ def run(): Unit = {
         .map(_.toUpperCase.nn) // // Does nothing, as absent
         .getOrElse("<No Title>") // Returns default value, as absent
 
-      println(s"displayedTitle = $displayedTitle")
+      println(s"displayedTitle=$displayedTitle")
     }
 
     section("Option attribute") {
@@ -196,12 +205,12 @@ def run(): Unit = {
       section("creating") {
         section("with title") {
           val titledCustomer = Customer(id = 1, title = Some("Mr"), firstName = "John", lastName = "Doe")
-          println(s"titledCustomer = $titledCustomer")
+          println(s"titledCustomer=$titledCustomer")
         }
 
         section("without title") {
           val untitledCustomer = Customer(id = 1, title = None, firstName = "John", lastName = "Doe")
-          println(s"untitledCustomer = $untitledCustomer")
+          println(s"untitledCustomer=$untitledCustomer")
         }
       }
 
@@ -211,28 +220,18 @@ def run(): Unit = {
 
         section("unsetting title") {
           val modifiedCustomer = titledCustomer.copy(title = None)
-          println(s"modifiedCustomer = $modifiedCustomer")
+          println(s"modifiedCustomer=$modifiedCustomer")
         }
 
         section("setting title") {
           val modifiedCustomer = untitledCustomer.copy(title = Some("Miss"), firstName = "Paula")
-          println(s"modifiedCustomer = $modifiedCustomer")
+          println(s"modifiedCustomer=$modifiedCustomer")
         }
       }
     }
   }
 
   section("TodoList") {
-    extension [A] (self: IndexedSeq[A]) {
-      def updatedWith[B >: A](index: Int, f: A => B): IndexedSeq[B] =
-        self.updated(index, f(self(index)))
-
-      def removedWhere(p: A => Boolean): IndexedSeq[A] = {
-        val index = self.indexWhere(p)
-        if index >= 0 then self.patch(index, IndexedSeq.empty, 1) else self
-      }
-    }
-
     case class Todo(id: Int, name: String, done: Boolean = false) {
       def markAsDone: Todo =
         this.copy(done = true)
@@ -277,7 +276,7 @@ def run(): Unit = {
       .addTodo(Todo(2, "Turnip"))
       .addTodo(Todo(3, "Cabbage"))
 
-    println(s"todoList = $todoList")
+    println(s"todoList=$todoList")
 
     val modifiedTodoList = todoList
       .markTodoAsDone(3)
@@ -287,7 +286,7 @@ def run(): Unit = {
 
     val doneCount = modifiedTodoList.doneCount
 
-    println(s"doneCount = $doneCount")
+    println(s"doneCount=$doneCount")
   }
 
   section("Expressions") {
@@ -334,7 +333,7 @@ def run(): Unit = {
 
       val number: Option[Int] =
         try Some(input.toInt)
-        catch  {
+        catch {
           case _: NumberFormatException => None
         }
     }
@@ -456,10 +455,18 @@ def run(): Unit = {
     }
 
     section("Matching by Pattern on enum") {
+      extension[K, V] (self: Map[K, V]) {
+        def updatedWith[V2 >: V](key: K, f: V => V2): Map[K, V2] =
+          self.updatedWith(key) {
+            case Some(v) => Some(f(v))
+            case None => None
+          }
+      }
+
       enum Operation {
         case Credit(account: Int, amount: Double)
         case Debit(account: Int, amount: Double)
-        case Transfer(sourceAccount: Int, targetAccount: Int, amount: Double)
+        case Transfer(sourceAccount: Int, destinationAccount: Int, amount: Double)
       }
 
       import Operation.*
@@ -467,25 +474,21 @@ def run(): Unit = {
       case class Bank(accounts: Map[Int, Double]) {
         def process(operation: Operation): Bank = {
           operation match {
-            case Credit(account, amount) => updateAccount(account, amount)
-            case Debit(account, amount) => updateAccount(account, -amount)
+            case Credit(account, amount) =>
+              Bank(accounts.updatedWith(account, _ + amount))
+
+            case Debit(account, amount) =>
+              Bank(accounts.updatedWith(account, _ - amount))
 
             case Transfer(sourceAccount, destinationAccount, amount) =>
-              updateAccount(sourceAccount, -amount)
-                .updateAccount(destinationAccount, amount)
+              Bank(
+                this.accounts
+                  .updatedWith(sourceAccount, _ - amount)
+                  .updatedWith(destinationAccount, _ + amount)
+              )
           }
-        }
-
-        def updateAccount(account: Int, amountDelta: Double): Bank = {
-          val updatedAccounts = accounts.updatedWith(account) {
-            case Some(amount) => Some(amount + amountDelta)
-            case None => None
-          }
-
-          Bank(accounts = updatedAccounts)
         }
       }
     }
   }
 }
-
