@@ -475,14 +475,14 @@ def run(): Unit = {
         def process(operation: Operation): Bank = {
           operation match {
             case Credit(account, amount) =>
-              Bank(accounts.updatedWith(account, _ + amount))
+              this.copy(accounts.updatedWith(account, _ + amount))
 
             case Debit(account, amount) =>
-              Bank(accounts.updatedWith(account, _ - amount))
+              this.copy(accounts = this.accounts.updatedWith(account, _ - amount))
 
             case Transfer(sourceAccount, destinationAccount, amount) =>
-              Bank(
-                this.accounts
+              this.copy(
+                accounts = this.accounts
                   .updatedWith(sourceAccount, _ - amount)
                   .updatedWith(destinationAccount, _ + amount)
               )

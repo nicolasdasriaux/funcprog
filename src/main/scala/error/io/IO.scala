@@ -1,7 +1,8 @@
 package error.io
 
+import error.either.Either
 import error.io.Cause.Die
-import error.io.IO.{Op, failCause, succeed}
+import error.io.IO.Op
 
 import java.io.IOException
 import scala.io.StdIn

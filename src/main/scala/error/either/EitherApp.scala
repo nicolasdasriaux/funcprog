@@ -4,7 +4,7 @@ object EitherApp {
   def main(args: Array[String]): Unit = {
     object IntField {
       def parse(s: String): Either[String, Int] =
-        if s.forall(_.isDigit) then
+        if s.nonEmpty && s.forall(_.isDigit) then
           Either.succeed(s.toInt)
         else
           Either.fail(s"Invalid integer ($s)")
@@ -37,6 +37,5 @@ object EitherApp {
     println(s"xAndYFailure = $xAndYFailure")
     // xAndYFailure = Left(x: Invalid integer (AAA))
     // Just the first error. What about the second error?
-    // Never tested actually
   }
 }

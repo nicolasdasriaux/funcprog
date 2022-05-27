@@ -6,12 +6,6 @@ import java.io.IOException
 import java.sql.SQLException
 
 object IOApp {
-  object IntField {
-    def parse(s: String): Either[NumberFormatException, Int] =
-      Either.attempt(s.toInt)
-        .refineToOrDie[NumberFormatException]
-  }
-
   def main(args: Array[String]): Unit = {
     test("IO.succeed") {
       IO.succeed(1000 / 0)
@@ -46,13 +40,32 @@ object IOApp {
       println(s"$name --> $exit")
     }
 
-    val program: IO[IOException, Unit] = for {
-      _ <- Console.printLine("What's your name?")
-      name <- Console.readLine
-      _ <- Console.printLine(s"Hello $name!")
-      _ <- Console.printLine("How old are you?")
-      age <- Console.readLine.map(_.toInt)
-      _ <- Console.printLine(s"You do not look like you're $age years old, $name!")
+    object IntField {
+      def parse(s: String): Either[NumberFormatException, Int] =
+        Either.attempt(s.toInt)
+          .refineToOrDie[NumberFormatException]
+    }
+
+    object Terminal {
+      def printLine(s: Any): IO[Nothing, Unit] = Console.printLine(s).orDie
+      def readLine: IO[Nothing, String] = Console.readLine.orDie
+
+      def readInt: IO[String, Int] = {
+        for {
+          s <- readLine
+          n <- IO.fromEither(IntField.parse(s)).mapError(_ => s"Invalid integer ($s)")
+        } yield n
+      }
+    }
+
+    import scala.io.AnsiColor.*
+    val program: IO[String, Unit] = for {
+      _ <- Terminal.printLine(s"What's your ${BOLD}name${RESET}?")
+      name <- Terminal.readLine
+      _ <- Terminal.printLine(s"Hello $name!")
+      _ <- Terminal.printLine("How old are you?")
+      age <- Terminal.readInt
+      _ <- Terminal.printLine(s"You do not look like you're $age years old, $name!")
     } yield ()
 
     val exit = Runtime.unsafeRun(program)

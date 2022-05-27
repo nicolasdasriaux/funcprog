@@ -1,8 +1,8 @@
 autoscale: true
-footer: Practical Pure I/O in Scala
+footer: Practical Functional Programming - Pure I/O
 slidenumbers: true
 
-# Practical
+# Practical Functional Programming
 
 # [fit] **Pure I/O**
 
@@ -10,40 +10,124 @@ slidenumbers: true
 
 ---
 
-# Previously on Practical Immutability...
+# Previously, **immutability**
 
-* Immutable **Classes**
-* Immutable **Collections** and **Options**
-* Immutable **Variables**
+---
+
+# Immutability
+
+* Immutable **objects** (`case class`)
+* Immutable **collections** (`Seq`, `IndexedSeq`, `Map`, `Set`)
+* Immutable **options** (`Option`)
+* Immutable **enumerations** (`enum`) aka Algebraic Data Types (**ADT**) 
 * Expressions
-* `enum` on steroids aka Algebraic Data Types (**ADT**)
 * Pattern Matching
 
 ---
 
-# What Functional Programming Is About
+# Previously, **bank operations**
 
-* Functional Programming (FP) is programming with **functions**.
+```scala
+enum Operation {
+  case Credit(account: Int, amount: Double)
+  case Debit(account: Int, amount: Double)
+  case Transfer(sourceAccount: Int, destinationAccount: Int, amount: Double)
+}
+
+case class Bank(accounts: Map[Int, Double]) {
+  def process(operation: Operation): Bank = {
+    operation match {
+      case Credit(account, amount) => ???
+      case Debit(account, amount) => ???
+      case Transfer(sourceAccount, destinationAccount, amount) => ???
+    }
+  }
+}
+```
+
+---
+
+# Modeling Bank Operations
+
+```scala
+// Immutable class (`case class`) using an immutable collection (`Map`)
+case class Bank(name: String, accounts: Map[Int, Double]) {
+  // ...
+}
+
+// ADT (Algebraic Data Type) or just an `enum` on steroids
+enum Operation {
+  case Credit(account: Int, amount: Double)
+  case Debit(account: Int, amount: Double)
+  case Transfer(sourceAccount: Int, destinationAccount: Int, amount: Double)
+}
+```
+
+---
+
+# Processing Bank Operation
+
+```scala
+case class Bank(name: String, accounts: Map[Int, Double]) {
+  def process(operation: Operation): Bank = {
+    operation match { // Pattern matching (`match`)
+      case Credit(account, amount) => // Extract into `account` and `amount`
+        val updatedAccounts = this.accounts.updatedWith(account, _ + amount)
+        // Immutable variable (`val`)
+        // `_ + amount` is equivalent to `a => a + amount`
+        this.copy(accounts = updatedAccounts)
+        // `updatedAccounts` passed as argument to the `account` parameter
+
+      // Other cases are similar
+    }
+  }
+}
+```
+
+---
+
+# Processing Operations Sequentially
+
+```scala
+val bank = Bank("My Bank", Map(1 -> 100.0, 2 -> 200.0))
+// No need for `new` keyword
+
+val finalBank = bank
+  .process(Credit(account = 1, amount = 30.0))
+  .process(Debit(account = 2, amount = 10.0))
+  .process(Transfer(sourceAccount = 1, destinationAccount = 2, amount = 10.0))
+```
+
+---
+
+# Previously, **functional programming**
+
+---
+
+# Functional Programming
+
+* Programming with **functions** that are
   - **Deterministic**: same arguments implies same result
   - **Total**: result always available for arguments, no exception
   - **Pure**: no side-effects, only effect is computing result
 
-* A benefit of FP is **referential transparency**.
+* And **values** that are **immutable**
 
 ---
 
-# What Referential Transparency Brings
+# [fit] Refactorings Break Impure :imp: Programs
 
+---
+
+# Referential Transparency
+
+* A benefit of FP is **referential transparency**.
 * **Typical refactorings cannot break a working program** :thumbsup:.
 * Applies to the following refactorings:
   - :wrench: **Extract Variable**
   - :wrench: **Inline Variable**
   - :wrench: **Extract Method**
   - :wrench: **Inline Method**
-
----
-
-# [fit] Refactorings Break Impure :imp: Programs
 
 ---
 
@@ -145,15 +229,15 @@ class IO[+A]
 
 ---
 
-# Program as Immutable Object
+# Infallible Program as Immutable Value
 
 ```scala
-case class IO[+A](unsafeIO: () => A) {
-  // ...
-}
-
-object IO { // ...
-  def attempt[A](a: => A): IO[A] = IO(() => a)
+object IO {
+  def succeed[A](a: => A): IO[A] = IO(() => a) // ...
+  // Wraps a presumably infallible expression
+  // `=> A` is equivalent to `() => A`
+  // But `succeed` should be called with `IO.succeed(expr)`
+  // `expr` argument is only evaluated when `a` parameter is used
 }
 ```
 
@@ -167,38 +251,37 @@ object IO { // ...
 ```scala
 object Console {
   def printLine(o: Any): IO[Unit] =
-    IO.attempt(/* () => */ println(o))
+    IO.succeed(/* () => */ println(o))
     
   val readLine: IO[String] =
-    IO.attempt(/* () => */ StdIn.readLine())
+    IO.succeed(/* () => */ StdIn.readLine())
 }
 ```
 
 ---
 
-# Program Yielding a Value
+# A Value Containing Void (`Unit`)
 
-```scala
-object IO {
-  def succeed[A](a: A): IO[A] = IO(() => a) // ...
-}
-```
+* `Unit` is a class with only 1 instance written as `()`
+* `()` is an immutable **value** that bears no information
+* Somehow an empty tuple
 
 ---
 
 # Chaining Programs
 
 ```scala
-case class IO[+A](unsafeIO: () => A) { ioA =>
+case class IO[+A](unsafeIO: () => A) { ioA => // Make `ioA` an alias for `this`
+  // Could be called `thenChain`
   def flatMap[B](cont: A => IO[B]): IO[B] = {
-    val ioB: IO[B] = IO { () =>
-      val a: A = ioA.unsafeIO()
-      val ioB: IO[B] = cont(a)
-      val b: B = ioB.unsafeIO()
-      b
-    }
-
-    ioB
+    IO(
+      () => {
+        val a: A = ioA.unsafeIO()
+        val ioB: IO[B] = cont(a)
+        val b: B = ioB.unsafeIO()
+        b
+      }
+    )
   } // ...
 }
 ```
@@ -209,25 +292,18 @@ case class IO[+A](unsafeIO: () => A) { ioA =>
 
 ```scala
 case class IO[+A](unsafeIO: () => A) { ioA => // ...
+  // Could be called `thenTransform`
   def map[B](trans: A => B): IO[B] = {
-    val ioB: IO[B] = IO { () =>
-      val a: A = ioA.unsafeIO()
-      val b: B = trans(a)
-      b
-    }
-
-    ioB
+    IO(
+      () => {
+        val a: A = ioA.unsafeIO()
+        val b: B = trans(a)
+        b
+      }
+    )
   }
 }
 ```
-
----
-
-# A Value Containing Void (`Unit`)
-
-* `Unit` is a class with only 1 instance written as `()`
-* A value that bears no information
-* Somehow an empty tuple
 
 ---
 
@@ -264,7 +340,7 @@ object ConsoleApp {
 
 * Will print something
   like `IO(io.pure.IO$$Lambda$19/0x0000000800098c40@42eca56e)`
-* This is just an **immutable object**, it does no side-effect, it's **pure** :innocent:.
+* This is just an immutable **value**, it performs no side-effect, it's **pure** :innocent:.
 * Need an **interpreter** to run!
 
 ---
@@ -283,11 +359,12 @@ object Runtime {
 
 ```scala
 object ConsoleApp {
-  // PURE ...
+  // ...
   
   def main(args: Array[String]): Unit = {
-    val program = helloApp // PURE
-    Runtime.unsafeRun(helloApp) // IMPURE!!! But that's OK!
+    val program = helloApp
+    // PURE-only above ^^^^^ (programs are values)
+    Runtime.unsafeRun(program) // Only this line is IMPURE!!!
   }
 }
 ```
@@ -306,7 +383,7 @@ object ConsoleApp {
 ```scala
 object Random {
   def nextIntBetween(min: Int, max: Int): IO[Int] =
-    IO.attempt(scala.util.Random.nextInt(max - min + 1) + min)
+    IO.succeed(scala.util.Random.nextInt(max - min + 1) + min)
 }
 ```
 
@@ -321,7 +398,7 @@ val welcomeNewPlayer: IO[Unit] =
       Random.nextIntBetween(0, 20).flatMap { x =>
         Random.nextIntBetween(0, 20).flatMap { y =>
           Random.nextIntBetween(0, 20).flatMap { z =>
-            Console.printLine(s"Welcome $name, you start at coordinates($x, $y, $z).")
+            Console.printLine(s"Welcome $name, you start at coordinates ($x, $y, $z).")
           }
         }
       }
@@ -344,6 +421,8 @@ val welcomeNewPlayer: IO[Unit] =
     _ <- Console.printLine(s"Welcome $name, you start at coordinates ($x, $y, $z).")
   } yield ()
 ```
+
+Syntactic sugar that calls `flatMap` and `map`
 
 ---
 
@@ -368,7 +447,7 @@ val printRandomPoint: IO[Unit] =
 # [fit] **`for` comprehension is not a `for` loop**.
 ## It can be a `for` loop...
 # [fit] But it can handle **many other things**
-## like `IO` and ... `Seq`, `Option`, `Future`...
+## like `IO` and... `Seq`, `Option`, `Range`...
 
 ---
 
@@ -393,16 +472,16 @@ val printRandomPoint: IO[Point] = {
 # `for` Comprehension **Type Rules**
 
 |             | `val` type | operator | expression type |
-|-------------|------------|----------|-----------------|
-| generation  | `A`        | `<-`     | `IO[E, A]`      |
-| assignment  | `B`        | `=`      | `B`             |
+|-------------|------------|----------|--------------|
+| generation  | `A`        | `<-`     | `IO[A]`      |
+| assignment  | `B`        | `=`      | `B`          |
 
 |            | `for` comprehension type | `yield` expression type |
 |------------|--------------------------|-------------------------|
-| production | `IO[E, R]`               | `R`                     |
+| production | `IO[R]`                  | `R`                     |
 
-* Combines **only** `IO[E, T]`, **no mix** with `Seq[T]`, `Option[T]`, `Future[T]`...
-* But it could be **only** `Seq[T]`, **only** `Option[T]`, **only** `Future[T]`...
+* Combines **only** `IO[E, T]`, **no mix** with `Seq[T]`, `Option[T]`...
+* But it could be **only** `Seq[T]`, **only** `Option[T]`...
 
 ---
 
@@ -557,16 +636,15 @@ def readInt: IO[Int] = Console.readLine.map(_.toInt)
 # Describing Operations with an ADT
 
 ```scala
-trait IO[+A] {
+trait IO[+A] { // `trait`, an interface on steroids
   // ...
 }
 
 object IO { // ...
-  // An ADT (Algebraic Data Type) with a type parameter
-  // known as GADT (Generalized Algebraic Data Type)
+  // `Op`enum has a type parameter A
+  // An ADT with a type parameter is called a Generalized ADT (or GADT)
   enum Op[+A] extends IO[A] {
-    case Succeed(result: A) extends Op[A]
-    case Attempt(result: () => A) extends Op[A]
+    case Succeed(result: () => A) extends Op[A]
     case FlatMap[A0, A](io: IO[A0], cont: A0 => IO[A]) extends Op[A]
   }
 }
@@ -586,8 +664,7 @@ trait IO[+A] {
 }
 
 object IO {
-  def succeed[A](a: A): IO[A] = Op.Succeed(a)
-  def attempt[A](a: => A): IO[A] = Op.Attempt(() => a)
+  def succeed[A](a: => A): IO[A] = Op.Succeed(() => a)
 }
 ```
 
@@ -599,13 +676,12 @@ object IO {
 object Runtime {
   def unsafeRun[A](io: IO[A]): A = {
     io match {
-      case Op.Succeed(result: A) => result
-      case Op.Attempt(result: (() => A)) => result()
+      case Op.Succeed(result /* () => A */) => result()
 
-      case Op.FlatMap(ioA0: IO[Any], cont: (Any => IO[A])) =>
+      case Op.FlatMap(ioA0 /* IO[A0] */, cont /* A0 => IO[A] */) =>
         val a0 = /* RECURSE */ unsafeRun(ioA0)
         val ioA = cont(a0)
-        val a = /* RECURSE (tail call) */ unsafeRun(ioA)
+        val a = /* TAIL_CALL_RECURSE */ unsafeRun(ioA)
         a
     }
   }
@@ -628,6 +704,6 @@ object Runtime {
   - Full **testability** with dependency injection
   - Easy **debugging**
   - **Performance** and **stack safety**
-  - And still fully functional with **100 % safe refactorings**
+  - And still fully functional with **100% safe refactorings**
 
 * _ZIO_, an easy to use Scala library, gives it to us!

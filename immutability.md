@@ -693,7 +693,7 @@ val label = point match {
 enum Operation {
   case Credit(account: Int, amount: Double)
   case Debit(account: Int, amount: Double)
-  case Transfer(sourceAccount: Int, targetAccount: Int, amount: Double)
+  case Transfer(sourceAccount: Int, destinationAccount: Int, amount: Double)
 }
 
 case class Bank(accounts: Map[Int, Double]) {
@@ -715,7 +715,7 @@ case class Bank(accounts: Map[Int, Double]) {
 
 # Functional Design
 
-* **Model data** using
+* **Model data** using **values**
   - Immutable **primitive types** (`Int`, `Double`, `Boolean`...)
   - Immutable **objects** (`case class`)
   - Immutable **collections** (`Seq`, `IndexedSeq`, `Map`, `Set`)

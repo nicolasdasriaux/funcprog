@@ -9,14 +9,10 @@ trait IO[+A] {
 }
 
 object IO {
-  def succeed[A](a: A): IO[A] = Op.Succeed(a)
-  def attempt[A](a: => A): IO[A] = Op.Attempt(() => a)
+  def succeed[A](a: => A): IO[A] = Op.Succeed(() => a)
 
-  // An ADT (Algebraic Data Type) with a type parameter
-  // known as GADT (Generalized Algebraic Data Type)
   enum Op[+A] extends IO[A] {
-    case Succeed(result: A) extends Op[A]
-    case Attempt(result: () => A) extends Op[A]
+    case Succeed(result: () => A) extends Op[A]
 
     case FlatMap[A0, A](
                          io: IO[A0],

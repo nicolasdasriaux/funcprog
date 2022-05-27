@@ -8,6 +8,7 @@ package io {
         }
     }
 
+    // ADT (Algebraic Data Type) or just an `enum` on steroids
     enum Operation {
       case Credit(account: Int, amount: Double)
       case Debit(account: Int, amount: Double)
@@ -16,20 +17,19 @@ package io {
 
     import Operation.*
 
-    case class Bank(accounts: Map[Int, Double], totalAmount: Double) {
+    // Immutable class (`case class`) using an immutable collection (`Map`)
+    case class Bank(name: String, accounts: Map[Int, Double]) {
       def process(operation: Operation): Bank = {
-        operation match {
-          case Credit(account, amount) =>
-            Bank(
-              accounts = this.accounts.updatedWith(account, _ + amount),
-              totalAmount = this.totalAmount + amount
-            )
+        operation match { // Pattern matching (`match`)
+          case Credit(account, amount) => // Extract into `account` and `amount`
+            val updatedAccounts = this.accounts.updatedWith(account, _ + amount)
+            // Immutable variable (`val`)
+            // `_ + amount` is equivalent to `a => a + amount`
+            this.copy(accounts = updatedAccounts)
+            // `updatedAccounts` passed as argument to the `account` parameter
 
           case Debit(account, amount) =>
-            Bank(
-              accounts = accounts.updatedWith(account, _ - amount),
-              totalAmount = this.totalAmount - amount
-            )
+            this.copy(accounts = this.accounts.updatedWith(account, _ - amount))
 
           case Transfer(sourceAccount, destinationAccount, amount) =>
             this.copy(
@@ -41,22 +41,10 @@ package io {
       }
     }
 
-    object Bank {
-      def apply(accounts: Map[Int, Double]): Bank =
-        Bank(
-          accounts = accounts,
-          totalAmount =  accounts.values.sum
-        )
-    }
-
     object BankApp {
       def main(args: Array[String]): Unit = {
-        val bank = Bank(
-          Map(
-            1 -> 100.0,
-            2 -> 200.0
-          )
-        )
+        val bank = Bank("My Bank", Map(1 -> 100.0, 2 -> 200.0))
+        // No need for `new` keyword
 
         val finalBank = bank
           .process(Credit(account = 1, amount = 30.0))
@@ -138,7 +126,7 @@ package io {
 
         def main(args: Array[String]): Unit = {
           val program = helloApp // PURE
-          Runtime.unsafeRun(helloApp) // IMPURE!!! But that's OK!
+          Runtime.unsafeRun(program) // IMPURE!!! But that's OK!
         }
       }
     }
@@ -160,7 +148,7 @@ package io {
               Random.nextIntBetween(0, 20).flatMap { x =>
                 Random.nextIntBetween(0, 20).flatMap { y =>
                   Random.nextIntBetween(0, 20).flatMap { z =>
-                    Console.printLine(s"Welcome $name, you start at coordinates($x, $y, $z).")
+                    Console.printLine(s"Welcome $name, you start at coordinates ($x, $y, $z).")
                   }
                 }
               }
@@ -215,7 +203,7 @@ package io {
             _     /* Unit  */ <- Console.printLine(s"x=$x")               /* IO[Unit] */
             y     /* Int   */ <- Random.nextIntBetween(0, 10)             /* IO[Int]  */
             _     /* Unit  */ <- Console.printLine(s"y=$y")               /* IO[Unit] */
-            point /* Point */ = Point(x, y)                               /* Point    */
+            point /* Point */ =  Point(x, y)                        /* Point    */
             _     /* Unit  */ <- Console.printLine(s"point.x=${point.x}") /* IO[Unit] */
             _     /* Unit  */ <- Console.printLine(s"point.y=${point.y}") /* IO[Unit] */
           } yield point /* Point */
@@ -251,7 +239,7 @@ package io {
       object Main {
         val printRandomPoint: IO[Point] = {
           for {
-              x <- Random.nextIntBetween(0, 10)
+               x <- Random.nextIntBetween(0, 10)
             /* | */ _ <- Console.printLine(s"x=$x")
             /* |    | */ y <- Random.nextIntBetween(0, 10)
             /* |    |    | */ _ <- Console.printLine(s"y=$y")

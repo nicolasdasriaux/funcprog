@@ -15,28 +15,27 @@ object Runtime {
       }
 
     io match {
-      case Op.Succeed(result: (() => A)) =>
-        // Die if exception thrown by result()
+      case Op.Succeed(result) =>
+        // Die if exception thrown
         dieOnException {
           Exit.succeed(result())
         }
 
-      case Op.FailCause(cause: (() => Cause[E])) =>
-        // Die if exception thrown by cause()
+      case Op.FailCause(cause) =>
+        // Die if exception thrown
         dieOnException {
           Exit.failCause(cause())
         }
 
-      case Op.Attempt(result: (() => A)) =>
-        // Fail if exception thrown by result()
+      case Op.Attempt(result) =>
+        // Fail with the exception as an error if exception thrown
         failOnException {
           Exit.succeed(result())
         }
 
-      case Op.FlatMap(io: IO[Any, Any], cont: (Any => IO[E, A])) =>
-        unsafeRun(io) /* RECURSE */ match {
+      case Op.FlatMap(ioA0, cont) =>
+        unsafeRun(ioA0) /* RECURSE */ match {
           case Exit.Succeed(a0) =>
-            // Die if exception thrown by continuation()
             dieOnException {
               unsafeRun(cont(a0)) /* RECURSE */
             }
@@ -44,16 +43,14 @@ object Runtime {
           case exit@Exit.FailCause(_) => exit
         }
 
-      case Op.FoldCauseIO(io: IO[Any, Any], onFailCause: (Cause[Any] => IO[E, A]), onSucceed: (Any => IO[E, A])) =>
-        unsafeRun(io) /* RECURSE */ match {
+      case Op.FoldCauseIO(ioA0, onFailCause, onSucceed) =>
+        unsafeRun(ioA0) /* RECURSE */ match {
           case Exit.Succeed(a0) =>
-            // Die if exception thrown by `onSucceed()` (or `unsafeRun()`)
             dieOnException {
               unsafeRun(onSucceed(a0)) /* RECURSE */
             }
 
           case Exit.FailCause(cause) =>
-            // Die if exception thrown by `onFailCause()` (or `unsafeRun()`)
             dieOnException {
               unsafeRun(onFailCause(cause)) /* RECURSE */
             }
