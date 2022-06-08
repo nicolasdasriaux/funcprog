@@ -1,63 +1,26 @@
 package error.validation
 
-import error.either.Either
-
-
 object ValidationApp {
   def main(args: Array[String]): Unit = {
-    object IntField {
-      def parse(s: String): Either[String, Int] =
-        Either.attempt(s.toInt)
-          .refineToOrDie[NumberFormatException]
-          .mapError(_ => s"Invalid integer ($s)")
+    object BooleanParser {
+      def parse(value: String): Validation[String, Boolean] =
+        value.toLowerCase match {
+          case "true" | "on" => Validation.succeed(true)
+          case "false" | "off" => Validation.succeed(false)
+          case _ => Validation.fail(s"Invalid boolean string ($value)")
+        }
     }
 
-    case class Point(x: Int, y: Int)
-    case class PointForm(x: String, y: String)
+    case class FeatureFlags(feature1: Boolean, feature2: Boolean)
+    case class FeatureFlagsForm(feature1: String, feature2: String)
 
-    object PointForm {
-      def parse(form: PointForm): Validation[String, Point] =
-        (
-          IntField.parse(form.x).toValidation.mapError(e => s"x: $e") <&>
-          IntField.parse(form.y).toValidation.mapError(e => s"y: $e")
-        ).map((x, y) => Point(x, y))
-    }
-
-    case class Rectangle(p1: Point, p2: Point)
-    case class RectangleForm(p1: PointForm, p2: PointForm)
-
-    object RectangleForm {
-      def parse(form: RectangleForm): Validation[String, Rectangle] =
-        (
-          PointForm.parse(form.p1).mapError(e => s"p1.$e") <&>
-          PointForm.parse(form.p2).mapError(e => s"p2.$e")
-        ).map((p1, p2) => Rectangle(p1, p2))
-
-      {
-        val success = PointForm.parse(PointForm(x = "1", y = "2"))
-        println(s"success = $success")
-        // success = Success(Point(1,2))
-
-        val xFailure = PointForm.parse(PointForm(x = "AAA", y = "2"))
-        println(s"xFailure = $xFailure")
-        // xFailure = Failure(List(x: Invalid integer (AAA)))
-
-        val yFailure = PointForm.parse(PointForm(x = "1", y = "BBB"))
-        println(s"yFailure = $yFailure")
-        // yFailure = Failure(List(y: Invalid integer (BBB)))
-
-        val xAndYFailure = PointForm.parse(PointForm(x = "AAA", y = "BBB"))
-        println(s"xAndYFailure = $xAndYFailure")
-        // xAndYFailure = Failure(List(x: Invalid integer (AAA), y: Invalid integer (BBB)))
-        // Both errors!
-      }
-
-      {
-        val rectangleForm = RectangleForm(p1 = PointForm("XXX1", "YYY1"), p2 = PointForm("3", "YYY2"))
-        val failure = RectangleForm.parse(rectangleForm)
-        println(s"failure = $failure")
-        // failure = Failure(List(p1.x: Invalid integer (XXX1), p1.y: Invalid integer (YYY1), p2.y: Invalid integer (YYY2)))
-        // All errors
+    object FeatureFlagsForm {
+      def parse(form: FeatureFlagsForm): Validation[String, FeatureFlags] = {
+        val feature1: Validation[String, Boolean] = BooleanParser.parse(form.feature1)
+        val feature2: Validation[String, Boolean] = BooleanParser.parse(form.feature2)
+        val features: Validation[String, (Boolean, Boolean)] = feature1 <&> feature2
+        val featureFlags: Validation[String, FeatureFlags] = features.map((feature1, feature2) => FeatureFlags(feature1, feature2))
+        featureFlags
       }
     }
   }
