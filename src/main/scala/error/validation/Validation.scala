@@ -34,15 +34,7 @@ enum Validation[+E, +A] { va =>
   def <*>[E2 >: E, B](vb: Validation[E2, B])(using zippable: Zippable[A, B]): Validation[E2, zippable.Out] =
     va.zip(vb)
 
-  def zipPar[E2 >: E, B](vb: Validation[E2, B])(using zippable: Zippable[A, B]): Validation[E2, zippable.Out] =
-    (va, vb) match {
-      case (Success(a), Success(b)) => Success(zippable.zip(a, b))
-      case (Failure(e1), Success(_)) => Failure(e1)
-      case (Success(_), Failure(e2)) => Failure(e2)
-      case (Failure(e1), Failure(e2)) => Failure(e1 ++ e2)
-    }
-
-  def zipParPairs[E2 >: E, B](vb: Validation[E2, B]): Validation[E2, (A, B)] =
+  def zipPar[E2 >: E, B](vb: Validation[E2, B]): Validation[E2, (A, B)] =
     (va, vb) match {
       case (Success(a), Success(b)) => Success((a, b))
       case (Failure(e1), Success(_)) => Failure(e1)
@@ -50,7 +42,7 @@ enum Validation[+E, +A] { va =>
       case (Failure(e1), Failure(e2)) => Failure(e1 ++ e2)
     }
 
-  def <&>[E2 >: E, B](vb: Validation[E2, B])(using zippable: Zippable[A, B]): Validation[E2, zippable.Out] =
+  def <&>[E2 >: E, B](vb: Validation[E2, B]): Validation[E2, (A, B)] =
     va.zipPar(vb)
 
   def toEither: Either[Seq[E], A] =

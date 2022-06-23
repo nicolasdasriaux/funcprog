@@ -41,13 +41,13 @@ object FormValidationApp {
       assert(success == Success(Point(1, 2)))
 
       val xFailure = PointForm.parse(PointForm(x = "XXX", y = "2"))
-      assert(xFailure == Failure(List("x: Invalid integer (XXX)")))
+      assert(xFailure == Failure(Seq("x: Invalid integer (XXX)")))
 
       val yFailure = PointForm.parse(PointForm(x = "1", y = "YYY"))
-      assert(yFailure == Failure(List("y: Invalid integer (YYY)")))
+      assert(yFailure == Failure(Seq("y: Invalid integer (YYY)")))
 
       val xAndYFailure = PointForm.parse(PointForm(x = "XXX", y = "YYY"))
-      assert(xAndYFailure == Failure(List("x: Invalid integer (XXX)", "y: Invalid integer (YYY)")))
+      assert(xAndYFailure == Failure(Seq("x: Invalid integer (XXX)", "y: Invalid integer (YYY)")))
     }
 
     {
@@ -57,7 +57,7 @@ object FormValidationApp {
       )
 
       val failure = RectangleForm.parse(rectangleForm)
-      assert(failure == Failure(List("p1.x: Invalid integer (P1X)", "p2.y: Invalid integer (P2Y)")))
+      assert(failure == Failure(Seq("p1.x: Invalid integer (P1X)", "p2.y: Invalid integer (P2Y)")))
     }
   }
 }

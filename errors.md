@@ -10,6 +10,108 @@ slidenumbers: true
 
 ---
 
+# Previously, **Immutability**
+
+---
+
+# Immutable Class
+
+```scala
+case class Customer(id: Int, firstName: String, lastName: String)
+
+// Create an new instance
+val customer = Customer(id = 1, firstName = "John", lastName = "Doe")
+val name = customer.firstName
+
+// Create a modified copy of an instance
+val modifiedCustomer = customer.copy(lastName = "Martin")
+// `customer` remains unmodified
+
+// Compare instances by value
+val sameCustomer = Customer(id = 1, firstName = "John", lastName = "Doe")
+assert(customer == sameCustomer)
+```
+
+---
+
+# Immutable Collection
+
+```scala
+// Create a new instance
+val greetings: Set[String] = Set("hello", "goodbye")
+
+// Creating an instance by applying a method on an instance  
+val availableGreetings =
+  greetings ++ Set("hi", "bye", "hello")
+// `greetings` remains unmodified
+```
+
+---
+
+# Expressions
+
+```scala
+val status = if enabled then "On" else "Off" // `if` expression
+
+val mark = color match { // `match` expression
+  case Red => 2
+  case Orange => 4
+  case Green => 6
+}
+
+val altitude = { // { ... } expression
+  val y = slope * t
+
+  if y < -threshold then -threshold
+  else if y > threshold then threshold
+  else y
+}
+```
+
+---
+
+# Simple Immutable `enum`
+
+```scala
+enum Direction {
+  case North, South, West, East
+}
+
+case class Position(x: Int, y: Int) {
+  def move(direction: Direction): Position =
+    direction match {
+      case North => this.copy(y = this.y - 1)
+      case South => this.copy(y = this.y + 1)
+      case West => this.copy(x = this.x - 1)
+      case East => this.copy(x = this.x + 1)
+    }
+}
+```
+
+---
+
+# Immutable `enum` on steroids
+
+```scala
+enum Action { // ADT (Algebraic Data Type)
+  case Sleep
+  case Walk(direction: Direction)
+  case Jump(position: Position)
+}
+
+case class Player(position: Position) {
+  def act(action: Action): Player =
+    action match { // Pattern Matching
+      case Sleep => this
+      case Walk(direction) => Player(position.move(direction))
+      case Jump(position) => Player(position)
+    }
+}
+```
+
+
+---
+
 # Subtyping
 ## Beyond Inheritance
 
@@ -53,7 +155,43 @@ object Either {
 # Chaining After a Result
 
 ```scala
-enum Either[+E, +A] { va => // `va` becomes a alias for `this`
+enum Either[+E, +A] { // ...
+  // Could be named `thenChain`
+  def flatMap[E2 >: E, B](
+                           cont: A => Either[E2, B]
+                         ): Either[E2, B] = ???
+  
+  // OUTPUT result type is `B`.
+  
+  // OUTPUT error type (`E2`) should be a supertype of both INPUT error types,
+  // i.e. `E` and the actual error type in `cont`
+  // ...
+}
+```
+
+---
+
+# Finding a :cat: and a Compatible :dog:
+
+```scala
+enum Error {
+  case CatNotFound
+  case CompatibleDogNotFound
+}
+
+def findCat(id: Int): Either[CatNotFound, Cat] = ???
+def findCompatibleDog(cat: Cat): Either[CompatibleDogNotFound, Dog] = ???
+
+val errorOrDog: Either[Error, Dog] =
+  findCat(1).flatMap(cat => findCompatibleDog(cat))
+```
+
+---
+
+# Implementing `flatMap`
+
+```scala
+enum Either[+E, +A] { va => // `va` becomes an alias for `this`
   def flatMap[E2 >: E, B](cont: A => Either[E2, B]): Either[E2, B] =
     va match {
       case Right(a) => cont(a)
@@ -69,6 +207,7 @@ enum Either[+E, +A] { va => // `va` becomes a alias for `this`
 
 ```scala
 enum Either[+E, +A] { va => // ...
+  // Could be named `thenTransform`
   def map[B](trans: A => B): Either[E, B] =
     va match {
       case Right(a) => Right(trans(a))
@@ -110,8 +249,8 @@ object SavingsAccount {
                 amount: Int
               ): Either[String, (SavingsAccount, SavingsAccount)] =
 
-    source.debit(amount).flatMap { updatedSource =>
-      destination.credit(amount).map { updatedDestination =>
+    source.debit(amount) /* */ .flatMap { updatedSource =>
+      destination.credit(amount) /* */ .map { updatedDestination =>
         (updatedSource, updatedDestination)
       }
     }
@@ -242,6 +381,24 @@ assert(xAndYFailure == Left("x: Invalid integer (XXX)"))
 
 ---
 
+# This Is the Nature of `flatMap`
+
+```scala
+enum Either[+E, +A] { // ...
+  def flatMap[E2 >: E, B](cont: A => Either[E2, B]): Either[E2, B] = ???
+  // ...
+}
+```
+
+* `flatMap` fundamentally **cannot report multiple errors**.
+  - Let's assume `this` is a **failure**, we just have an `E`.
+  - There's no available `A`, so we cannot call `cont`.
+  - There's no way to know whether `cont` would return another **failure**.
+* `flatMap` is inherently **sequentially dependent**
+  - We have to know about _success_ or _failure_ for `this` **before** we can call `cont`.
+
+---
+
 # A Mental Model for Errors
 
 ---
@@ -251,20 +408,20 @@ assert(xAndYFailure == Left("x: Invalid integer (XXX)"))
 * **Succeed** with a **result**
 
 * **Fail** with an **error**
-  - **Domain** error, **business** error
   - _Expected_, recoverable
-  - Materialized by a value (`Either.Left[E]`, `Validation.Failure[E]`)
+  - **Domain** error, **business** error, but not only
+  - Materialized as a value (`Either.Left[E]`, `Validation.Failure[E]`)
 
 * **Die** with a **defect**
   - _Unexpected_, not recoverable
-  - Signaled by an **Exception**
+  - Materialized as an **Exception**
 
 ---
 
 # Turning Exception to Error
 
 ```scala
-object Either {
+object Either { // ...
   def attempt[A](result: => A): Either[Throwable, A] =
     try succeed(result)
     catch {
@@ -281,16 +438,17 @@ object Either {
 ```scala
 object Either { // ...
   // Provide `refineToOrDie` method to `Either` instances
-  // when error type is a subtype of Throwable
+  // when error type is a subtype of `Throwable`
   extension [E <: Throwable, A](either: Either[E, A]) {
-    def refineToOrDie[E2 <: E /* ... */]: Either[E2, A] = 
-      ??? // Do something with `either`
+    def refineToOrDie[E2 <: E /* ... */]: Either[E2, A] = ???
   }
 }
 ```
 
+* `refineToOrDie` is only available when `E` is a subtype of `Throwable`
 * Refine error type from `E` to subtype `E2`
-* Rethrows any suppressed exception that is not subtype of `E2`
+  - From `Either[E, A]` to `Either[E2, A]`
+* Rethrows any previously captured exception that is not subtype of `E2`
 
 ---
 
@@ -370,39 +528,46 @@ enum Validation[+E, +A] { va => // ...
   // ...
 }
 ```
+
 ---
 
-# Parsing a Boolean
+# Savings Account Revisited
 
 ```scala
-object BooleanField {
-  def parse(value: String): Validation[String, Boolean] =
-    value.toLowerCase match {
-      case "true" | "on" => Validation.succeed(true)
-      case "false" | "off" => Validation.succeed(false)
-      case _ => Validation.fail(s"Invalid boolean string ($value)")
-    }
+  case class SavingsAccount(balance: Int) {
+  def debit(amount: Int): Validation[String, SavingsAccount] =
+    if this.balance - amount >= 0 then 
+      Validation.succeed(SavingsAccount(balance = this.balance - amount))
+    else
+      Validation.fail("Cannot be over-debited")
+
+  def credit(amount: Int): Validation[String, SavingsAccount] =
+    if this.balance + amount <= 500 then
+      Validation.succeed(SavingsAccount(balance = this.balance + amount))
+    else
+      Validation.fail("Cannot be over-credited")
 }
 ```
 
 ---
 
-# Parsing Feature Flags
+# Transferring Money Revisited
 
 ```scala
-case class FeatureFlags(feature1: Boolean, feature2: Boolean)
-case class FeatureFlagsForm(feature1: String, feature2: String)
+case class TransferResult(updatedSource: SavingsAccount, updatedDestination: SavingsAccount)
 
-object FeatureFlagsForm {
-  def parse(form: FeatureFlagsForm): Validation[String, FeatureFlags] = {
-    val feature1: Validation[String, Boolean] = BooleanField.parse(form.feature1)
-    val feature2: Validation[String, Boolean] = BooleanField.parse(form.feature2)
-    val features: Validation[String, (Boolean, Boolean)] = feature1 <&> feature2
- 
-    val featureFlags: Validation[String, FeatureFlags] =
-      features.map((feature1, feature2) => FeatureFlags(feature1, feature2))
-      
-    featureFlags
+object SavingsAccount {
+  def transfer(source: SavingsAccount, destination: SavingsAccount, amount: Int): Validation[String, TransferResult] = {
+    val updatedSource: Validation[String, SavingsAccount] = source.debit(amount)
+    val updatedDestination: Validation[String, SavingsAccount] = destination.credit(amount)
+    val updatedAccounts: Validation[String, (SavingsAccount, SavingsAccount)] = updatedSource <&> updatedDestination
+
+    val transferResult: Validation[String, TransferResult] =
+      updatedAccounts.map { (updatedSource, updatedDestination) =>
+        TransferResult(updatedSource, updatedDestination)
+      }
+
+    transferResult
   }
 }
 ```
@@ -416,7 +581,7 @@ enum Validation[+E, +A] { va => // ...
   def mapError[E2](trans: E => E2): Validation[E2, A] = 
     va match {
       case Success(a) => Success(a)
-      case Failure(e /* : List[E] */) => Failure(e.map(trans))
+      case Failure(e /* : Seq[E] */) => Failure(e.map(trans))
     }
   // ...
 }
@@ -463,13 +628,13 @@ val success = PointForm.parse(PointForm(x = "1", y = "2"))
 assert(success == Success(Point(1, 2)))
 
 val xFailure = PointForm.parse(PointForm(x = "XXX", y = "2"))
-assert(xFailure == Failure(List("x: Invalid integer (XXX)")))
+assert(xFailure == Failure(Seq("x: Invalid integer (XXX)")))
 
 val xAndYFailure = PointForm.parse(PointForm(x = "XXX", y = "YYY"))
 
 assert(xAndYFailure ==
   Failure(
-    List(
+    Seq(
       "x: Invalid integer (XXX)",
       "y: Invalid integer (YYY)"
     )
@@ -508,7 +673,7 @@ val failure = RectangleForm.parse(rectangleForm)
 
 assert(failure ==
   Failure(
-    List(
+    Seq(
       "p1.x: Invalid integer (P1X)",
       "p2.y: Invalid integer (P2Y)"
     )

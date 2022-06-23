@@ -1,27 +1,41 @@
 package error.validation
 
 object ValidationApp {
-  def main(args: Array[String]): Unit = {
-    object BooleanParser {
-      def parse(value: String): Validation[String, Boolean] =
-        value.toLowerCase match {
-          case "true" | "on" => Validation.succeed(true)
-          case "false" | "off" => Validation.succeed(false)
-          case _ => Validation.fail(s"Invalid boolean string ($value)")
-        }
-    }
+  case class SavingsAccount(balance: Int) {
+    def debit(amount: Int): Validation[String, SavingsAccount] =
+      if this.balance - amount >= 0 then
+        Validation.succeed(SavingsAccount(balance = this.balance - amount))
+      else
+        Validation.fail("Cannot be over-debited")
 
-    case class FeatureFlags(feature1: Boolean, feature2: Boolean)
-    case class FeatureFlagsForm(feature1: String, feature2: String)
+    def credit(amount: Int): Validation[String, SavingsAccount] =
+      if this.balance + amount <= 500 then
+        Validation.succeed(SavingsAccount(balance = this.balance + amount))
+      else
+        Validation.fail("Cannot be over-credited")
+  }
 
-    object FeatureFlagsForm {
-      def parse(form: FeatureFlagsForm): Validation[String, FeatureFlags] = {
-        val feature1: Validation[String, Boolean] = BooleanParser.parse(form.feature1)
-        val feature2: Validation[String, Boolean] = BooleanParser.parse(form.feature2)
-        val features: Validation[String, (Boolean, Boolean)] = feature1 <&> feature2
-        val featureFlags: Validation[String, FeatureFlags] = features.map((feature1, feature2) => FeatureFlags(feature1, feature2))
-        featureFlags
+  case class TransferResult(updatedSource: SavingsAccount, updatedDestination: SavingsAccount)
+
+object SavingsAccount {
+  def transfer(source: SavingsAccount, destination: SavingsAccount, amount: Int): Validation[String, TransferResult] = {
+    val updatedSource: Validation[String, SavingsAccount] = source.debit(amount)
+    val updatedDestination: Validation[String, SavingsAccount] = destination.credit(amount)
+    val updatedAccounts: Validation[String, (SavingsAccount, SavingsAccount)] = updatedSource <&> updatedDestination
+
+    val transferResult: Validation[String, TransferResult] =
+      updatedAccounts.map { (updatedSource, updatedDestination) =>
+        TransferResult(updatedSource, updatedDestination)
       }
-    }
+
+    transferResult
+  }
+}
+
+  def main(args: Array[String]): Unit = {
+    import Validation.*
+
+    val overCreditedAndOverDebited = SavingsAccount.transfer(source = SavingsAccount(40), destination = SavingsAccount(400), amount = 150)
+    assert(overCreditedAndOverDebited == Failure(Seq("Cannot be over-debited", "Cannot be over-credited")))
   }
 }
