@@ -384,18 +384,17 @@ assert(xAndYFailure == Left("x: Invalid integer (XXX)"))
 # This Is the Nature of `flatMap`
 
 ```scala
-enum Either[+E, +A] { // ...
-  def flatMap[E2 >: E, B](cont: A => Either[E2, B]): Either[E2, B] = ???
-  // ...
+enum Either[+E, +A] { va => // ...
+  def flatMap[E2 >: E, B](cont: A => Either[E2, B]): Either[E2, B] = ??? // ...
 }
 ```
 
 * `flatMap` fundamentally **cannot report multiple errors**.
-  - Let's assume `this` is a **failure**, we just have an `E`.
+  - Let's assume `va` is a **failure**, we just have an `E`.
   - There's no available `A`, so we cannot call `cont`.
   - There's no way to know whether `cont` would return another **failure**.
 * `flatMap` is inherently **sequentially dependent**
-  - We have to know about _success_ or _failure_ for `this` **before** we can call `cont`.
+  - We have to know about _success_ or _failure_ for `va` **before** we can call `cont`.
 
 ---
 
@@ -438,7 +437,6 @@ object Either { // ...
 ```scala
 object Either { // ...
   // Provide `refineToOrDie` method to `Either` instances
-  // when error type is a subtype of `Throwable`
   extension [E <: Throwable, A](either: Either[E, A]) {
     def refineToOrDie[E2 <: E /* ... */]: Either[E2, A] = ???
   }
@@ -558,14 +556,14 @@ case class TransferResult(updatedSource: SavingsAccount, updatedDestination: Sav
 
 object SavingsAccount {
   def transfer(source: SavingsAccount, destination: SavingsAccount, amount: Int): Validation[String, TransferResult] = {
-    val updatedSource: Validation[String, SavingsAccount] = source.debit(amount)
-    val updatedDestination: Validation[String, SavingsAccount] = destination.credit(amount)
-    val updatedAccounts: Validation[String, (SavingsAccount, SavingsAccount)] = updatedSource <&> updatedDestination
+    val updatedSource = source.debit(amount)
+    val updatedDestination = destination.credit(amount)
+    
+    val updatedAccounts: Validation[String, (SavingsAccount, SavingsAccount)] =
+      source.debit(amount) <&> destination.credit(amount)
 
     val transferResult: Validation[String, TransferResult] =
-      updatedAccounts.map { (updatedSource, updatedDestination) =>
-        TransferResult(updatedSource, updatedDestination)
-      }
+      updatedAccounts.map((updatedSource, updatedDestination) => TransferResult(updatedSource, updatedDestination))
 
     transferResult
   }
