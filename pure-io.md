@@ -10,92 +10,89 @@ slidenumbers: true
 
 ---
 
-# Previously, **immutability**
+# Previously, **Immutability**
 
 ---
 
-# Immutability
-
-* Immutable **objects** (`case class`)
-* Immutable **collections** (`Seq`, `IndexedSeq`, `Map`, `Set`)
-* Immutable **options** (`Option`)
-* Immutable **enumerations** (`enum`) aka Algebraic Data Types (**ADT**) 
-* Expressions
-* Pattern Matching
-
----
-
-# Previously, **bank operations**
+# Immutable Class
 
 ```scala
-enum Operation {
-  case Credit(account: Int, amount: Double)
-  case Debit(account: Int, amount: Double)
-  case Transfer(sourceAccount: Int, destinationAccount: Int, amount: Double)
+case class Customer(id: Int, firstName: String, lastName: String)
+
+// Create an new instance
+val customer = Customer(id = 1, firstName = "John", lastName = "Doe")
+val name = customer.firstName
+
+// Create a modified copy of an instance
+val modifiedCustomer = customer.copy(lastName = "Martin")
+// `customer` remains unmodified
+
+// Compare instances by value
+val sameCustomer = Customer(id = 1, firstName = "John", lastName = "Doe")
+assert(customer == sameCustomer)
+```
+
+---
+
+# Expressions
+
+```scala
+val status = if enabled then "On" else "Off" // `if` expression
+
+val mark = color match { // `match` expression
+  case Red => 2
+  case Orange => 4
+  case Green => 6
 }
 
-case class Bank(accounts: Map[Int, Double]) {
-  def process(operation: Operation): Bank = {
-    operation match {
-      case Credit(account, amount) => ???
-      case Debit(account, amount) => ???
-      case Transfer(sourceAccount, destinationAccount, amount) => ???
+val altitude = { // { ... } expression
+  val y = slope * t
+
+  if y < -threshold then -threshold
+  else if y > threshold then threshold
+  else y
+}
+```
+
+---
+
+# Simple Immutable `enum`
+
+```scala
+enum Direction {
+  case North, South, West, East
+}
+
+case class Position(x: Int, y: Int) {
+  def move(direction: Direction): Position =
+    direction match {
+      case North => this.copy(y = this.y - 1)
+      case South => this.copy(y = this.y + 1)
+      case West => this.copy(x = this.x - 1)
+      case East => this.copy(x = this.x + 1)
     }
-  }
 }
 ```
 
 ---
 
-# Modeling Bank Operations
+# Immutable `enum` on steroids
 
 ```scala
-// Immutable class (`case class`) using an immutable collection (`Map`)
-case class Bank(name: String, accounts: Map[Int, Double]) {
-  // ...
+enum Action { // ADT (Algebraic Data Type)
+  case Sleep
+  case Walk(direction: Direction)
+  case Jump(position: Position)
 }
 
-// ADT (Algebraic Data Type) or just an `enum` on steroids
-enum Operation {
-  case Credit(account: Int, amount: Double)
-  case Debit(account: Int, amount: Double)
-  case Transfer(sourceAccount: Int, destinationAccount: Int, amount: Double)
-}
-```
-
----
-
-# Processing Bank Operation
-
-```scala
-case class Bank(name: String, accounts: Map[Int, Double]) {
-  def process(operation: Operation): Bank = {
-    operation match { // Pattern matching (`match`)
-      case Credit(account, amount) => // Extract into `account` and `amount`
-        val updatedAccounts = this.accounts.updatedWith(account, _ + amount)
-        // Immutable variable (`val`)
-        // `_ + amount` is equivalent to `a => a + amount`
-        this.copy(accounts = updatedAccounts)
-        // `updatedAccounts` passed as argument to the `account` parameter
-
-      // Other cases are similar
+case class Player(position: Position) {
+  def act(action: Action): Player =
+    action match { // Pattern Matching
+      case Sleep => this
+      case Walk(direction) => Player(position.move(direction))
+      case Jump(position) => Player(position)
     }
-  }
 }
-```
-
----
-
-# Processing Operations Sequentially
-
-```scala
-val bank = Bank("My Bank", Map(1 -> 100.0, 2 -> 200.0))
-// No need for `new` keyword
-
-val finalBank = bank
-  .process(Credit(account = 1, amount = 30.0))
-  .process(Debit(account = 2, amount = 10.0))
-  .process(Transfer(sourceAccount = 1, destinationAccount = 2, amount = 10.0))
 ```
 
 ---
