@@ -28,10 +28,10 @@ enum Validation[+E, +A] { va =>
       case Failure(e) => Failure(e.map(trans))
     }
 
-  def zip[E2 >: E, B](vb: Validation[E2, B])(using zippable: Zippable[A, B]): Validation[E2, zippable.Out] =
-    va.flatMap(a => vb.map(b => zippable.zip(a, b)))
+  def zip[E2 >: E, B](vb: Validation[E2, B]): Validation[E2, (A, B)] =
+    va.flatMap(a => vb.map(b => (a, b)))
 
-  def <*>[E2 >: E, B](vb: Validation[E2, B])(using zippable: Zippable[A, B]): Validation[E2, zippable.Out] =
+  def <*>[E2 >: E, B](vb: Validation[E2, B]): Validation[E2, (A, B)] =
     va.zip(vb)
 
   def zipPar[E2 >: E, B](vb: Validation[E2, B]): Validation[E2, (A, B)] =
@@ -54,7 +54,7 @@ enum Validation[+E, +A] { va =>
 
 object Validation {
   def succeed[A](result: A): Validation[Nothing, A] = Success(result)
-  def fail[E](error: E): Validation[E, Nothing] = Failure(List(error))
+  def fail[E](error: E): Validation[E, Nothing] = Failure(Seq(error))
 
   def fromEither[E, A](either: Either[E, A]): Validation[E, A] = either.toValidation
 }

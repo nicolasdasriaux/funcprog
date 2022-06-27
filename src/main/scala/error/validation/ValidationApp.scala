@@ -17,18 +17,18 @@ object ValidationApp {
 
   case class TransferResult(updatedSource: SavingsAccount, updatedDestination: SavingsAccount)
 
-object SavingsAccount {
-  def transfer(source: SavingsAccount, destination: SavingsAccount, amount: Int): Validation[String, TransferResult] = {
-    val updatedSource = source.debit(amount)
-    val updatedDestination = destination.credit(amount)
-    val updatedAccounts: Validation[String, (SavingsAccount, SavingsAccount)] = updatedSource <&> updatedDestination
+  object SavingsAccount {
+    def transfer(source: SavingsAccount, destination: SavingsAccount, amount: Int): Validation[String, TransferResult] = {
+      val updatedSource = source.debit(amount)
+      val updatedDestination = destination.credit(amount)
+      val updatedAccounts: Validation[String, (SavingsAccount, SavingsAccount)] = updatedSource <&> updatedDestination
 
-    val transferResult: Validation[String, TransferResult] =
-      updatedAccounts.map((updatedSource, updatedDestination) => TransferResult(updatedSource, updatedDestination))
+      val transferResult: Validation[String, TransferResult] =
+        updatedAccounts.map((updatedSource, updatedDestination) => TransferResult(updatedSource, updatedDestination))
 
-    transferResult
+      transferResult
+    }
   }
-}
 
   def main(args: Array[String]): Unit = {
     import Validation.*

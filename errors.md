@@ -109,7 +109,6 @@ case class Player(position: Position) {
 }
 ```
 
-
 ---
 
 # Subtyping
@@ -175,8 +174,8 @@ enum Either[+E, +A] { // ...
 
 ```scala
 enum Error {
-  case CatNotFound
-  case CompatibleDogNotFound
+  case CatNotFound(id: Int)
+  case CompatibleDogNotFound(cat: Cat)
 }
 
 def findCat(id: Int): Either[CatNotFound, Cat] = ???
@@ -336,7 +335,7 @@ enum Either[+E, +A] { va => // ...
 ```scala
 object IntField {
   def parse(s: String): Either[String, Int] =
-    if s.nonEmpty && s.forall(_.isDigit) then
+    if s.nonEmpty && s.forall(c => c.isDigit) then
       Either.succeed(s.toInt)
     else
       Either.fail(s"Invalid integer ($s)")
@@ -348,8 +347,8 @@ object IntField {
 # Parsing a Point
 
 ```scala
-case class PointForm(x: String, y: String)
 case class Point(x: Int, y: Int)
+case class PointForm(x: String, y: String)
 
 object PointForm {
   def parse(form: PointForm): Either[String, Point] =
@@ -422,7 +421,10 @@ enum Either[+E, +A] { va => // ...
 ```scala
 object Either { // ...
   def attempt[A](result: => A): Either[Throwable, A] =
-    try succeed(result)
+    // `=> A` is equivalent to `() => A`
+    // But `attempt` should be called with `Either.attempt(<expr>)`
+
+    try succeed(result) // `result` is used here, <expr> is evaluated here
     catch {
       case defect: Throwable => fail(defect)
     }
@@ -444,9 +446,9 @@ object Either { // ...
 ```
 
 * `refineToOrDie` is only available when `E` is a subtype of `Throwable`
-* Refine error type from `E` to subtype `E2`
+* **Refine** error type from `E` to subtype `E2`
   - From `Either[E, A]` to `Either[E2, A]`
-* Rethrows any previously captured exception that is not subtype of `E2`
+* **Rethrow** any other previously captured exception when not subtype of `E2`
 
 ---
 
@@ -455,8 +457,9 @@ object Either { // ...
 ```scala
 object IntField {
   def parse(s: String): Either[String, Int] =
-    Either.attempt(s.toInt)
-      .refineToOrDie[NumberFormatException]
+    Either.attempt(/* () => */ s.toInt) /* Either[Throwable, Int] */
+      .refineToOrDie[NumberFormatException] /* Either[NumberFormatException, Int] */
+            // Would rethrow captured `NullPointerException`
       .mapError(_ => s"Invalid integer ($s)")
 }
 ```
@@ -478,7 +481,7 @@ enum Validation[+E, +A] { // ...
 
 object Validation {
   def succeed[A](result: A): Validation[Nothing, A] = Success(result)
-  def fail[E](error: E): Validation[E, Nothing] = Failure(List(error))
+  def fail[E](error: E): Validation[E, Nothing] = Failure(Seq(error))
   // ...
 }
 ```
@@ -560,7 +563,7 @@ object SavingsAccount {
     val updatedDestination = destination.credit(amount)
     
     val updatedAccounts: Validation[String, (SavingsAccount, SavingsAccount)] =
-      source.debit(amount) <&> destination.credit(amount)
+      updatedSource <&> updatedDestination
 
     val transferResult: Validation[String, TransferResult] =
       updatedAccounts.map((updatedSource, updatedDestination) => TransferResult(updatedSource, updatedDestination))
@@ -678,3 +681,28 @@ assert(failure ==
   )
 )
 ```
+
+---
+
+# In  A Nutshell
+
+---
+
+# Handling Errors in Pure Functions
+
+* **Pure** methods (and functions) do not perform any kind of I/O, parallelism or concurrency
+* Report success with a **result**, or failure with an **error**, with a dedicated `enum` (with type parameters :wink:)
+  - Report **first error**, `Either[E, A]`
+  - Report **accumulated errors**, `Validation[E, A]`
+* Report failure with an **error** (recoverable) as a special `case` of the `enum`
+* Report death with a **defect** (unrecoverable) as an exception
+
+---
+
+# In Real Life
+
+* Exactly the same... but not with our toys!
+* `Either` from **Scala standard library**
+  - Maybe with some extension methods to fix the legacy a bit
+* `Validation` from **ZIO Prelude** library
+  - Also supports **warnings** (possibly together with result) with `ZValidation`
