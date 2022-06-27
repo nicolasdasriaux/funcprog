@@ -90,7 +90,7 @@ case class Position(x: Int, y: Int) {
 
 ---
 
-# Immutable `enum` on steroids
+# Immutable `enum` on Steroids
 
 ```scala
 enum Action { // ADT (Algebraic Data Type)
