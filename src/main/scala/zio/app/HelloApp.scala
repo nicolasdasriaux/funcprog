@@ -1,10 +1,8 @@
-package zio
-
-import zio.*
-import zio.Positioning.WellPositioned
+package zio.app
 
 import java.io.IOException
 import scala.collection.immutable.{SortedMap, SortedSet}
+import zio.*
 
 enum Positioning {
   case Unknown

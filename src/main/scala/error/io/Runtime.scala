@@ -1,60 +1,63 @@
 package error.io
 
+import IO.Op
+
 object Runtime {
-  import IO.Op
-
   def unsafeRun[E, A](io: IO[E, A]): Exit[E, A] = {
-    def failOnException[E <: Throwable, A](result: => Exit[E, A]): Exit[E, A] =
-      try result catch {
-        case ex: E => Exit.fail(ex)
-      }
-
-    def dieOnException[E, A](result: => Exit[E, A]): Exit[E, A] =
-      try result catch {
+    inline def dieOnException[E, A](result: => Exit[E, A]): Exit[E, A] =
+      try result
+      catch {
         case ex: Throwable => Exit.die(ex)
       }
 
-    io match {
-      case Op.Succeed(result) =>
-        // Die if exception thrown
-        dieOnException {
-          Exit.succeed(result())
-        }
+    inline def runSucceed[A](result: () => A): Exit[Nothing, A] = dieOnException {
+      Exit.succeed(result())
+    }
 
-      case Op.FailCause(cause) =>
-        // Die if exception thrown
-        dieOnException {
-          Exit.failCause(cause())
-        }
+    inline def runFailCause(cause: () => Cause[E]): Exit[E, Nothing] = dieOnException {
+      Exit.failCause(cause())
+    }
 
-      case Op.Attempt(result) =>
+    inline def runAttempt[E <: Throwable](result: () => A): Exit[E, A] =
+      try {
+        Exit.succeed(result())
+      } catch {
         // Fail with the exception as an error if exception thrown
-        failOnException {
-          Exit.succeed(result())
+        case defect: Throwable => Exit.fail(defect).asInstanceOf[Exit[E, Nothing]]
+      }
+
+    inline def runFlatMap[E, A0, A](ioA0: IO[E, A0], cont: A0 => IO[E, A]): Exit[E, A] =
+      unsafeRun(ioA0) match {
+        case Exit.Succeed(a0) /* a0: A0 */ => dieOnException {
+          unsafeRun(cont(a0))
         }
 
-      case Op.FlatMap(ioA0, cont) =>
-        unsafeRun(ioA0) /* RECURSE */ match {
-          case Exit.Succeed(a0) =>
-            dieOnException {
-              unsafeRun(cont(a0)) /* RECURSE */
-            }
+        case failCause@Exit.FailCause(_) /* _: E */ => failCause
+      }
 
-          case exit@Exit.FailCause(_) => exit
+    inline def runFoldCauseIO[E0, A0, E, A](
+                                             ioA0: IO[E0, A0],
+                                             onFailCause: Cause[E0] => IO[E, A],
+                                             onSucceed: A0 => IO[E, A]
+                                           ): Exit[E, A] =
+      unsafeRun(ioA0) match {
+        case Exit.FailCause(cause) /* cause: Cause[E0] */ => dieOnException {
+          unsafeRun(onFailCause(cause))
         }
 
-      case Op.FoldCauseIO(ioA0, onFailCause, onSucceed) =>
-        unsafeRun(ioA0) /* RECURSE */ match {
-          case Exit.Succeed(a0) =>
-            dieOnException {
-              unsafeRun(onSucceed(a0)) /* RECURSE */
-            }
-
-          case Exit.FailCause(cause) =>
-            dieOnException {
-              unsafeRun(onFailCause(cause)) /* RECURSE */
-            }
+        case Exit.Succeed(a0) /* a0: A0 */ => dieOnException {
+          unsafeRun(onSucceed(a0))
         }
+      }
+
+    io match {
+      case Op.Succeed(result) => runSucceed(result)
+      case Op.FailCause(cause) => runFailCause(cause)
+      case Op.Attempt(result) => runAttempt(result)
+      case Op.FlatMap(ioA0, cont) => runFlatMap(ioA0, cont)
+
+      case Op.FoldCauseIO(ioA0, onFailCause , onSucceed) =>
+        runFoldCauseIO(ioA0, onFailCause, onSucceed)
     }
   }
 }

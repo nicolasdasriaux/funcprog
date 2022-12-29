@@ -50,17 +50,19 @@ object IOApp {
       def printLine(s: Any): IO[Nothing, Unit] = Console.printLine(s).orDie
       def readLine: IO[Nothing, String] = Console.readLine.orDie
 
-      def readInt: IO[String, Int] = {
+      def readInt: IO[Nothing, Int] = {
         for {
           s <- readLine
-          n <- IO.fromEither(IntField.parse(s)).mapError(_ => s"Invalid integer ($s)")
+          n <- IO.fromEither(IntField.parse(s))
+            .catchAll { _ =>
+              printLine(s"Invalid integer (${s})").flatMap(_ => readInt)
+            }
         } yield n
       }
     }
 
-    import scala.io.AnsiColor.*
     val program: IO[String, Unit] = for {
-      _ <- Terminal.printLine(s"What's your ${BOLD}name${RESET}?")
+      _ <- Terminal.printLine(s"What's your name?")
       name <- Terminal.readLine
       _ <- Terminal.printLine(s"Hello $name!")
       _ <- Terminal.printLine("How old are you?")

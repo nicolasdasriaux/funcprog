@@ -535,7 +535,7 @@ enum Validation[+E, +A] { va => // ...
 # Savings Account Revisited
 
 ```scala
-  case class SavingsAccount(balance: Int) {
+case class SavingsAccount(balance: Int) {
   def debit(amount: Int): Validation[String, SavingsAccount] =
     if this.balance - amount >= 0 then 
       Validation.succeed(SavingsAccount(balance = this.balance - amount))

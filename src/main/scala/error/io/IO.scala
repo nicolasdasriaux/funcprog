@@ -8,7 +8,7 @@ import java.io.IOException
 import scala.io.StdIn
 import scala.reflect.ClassTag
 
-sealed trait IO[+E, +A] {
+trait IO[+E, +A] {
   def flatMap[E2 >: E, B](cont: A => IO[E2, B]): IO[E2, B] = Op.FlatMap(this, cont)
   def map[B](trans: A => B): IO[E, B] = this.flatMap(a => IO.succeed(trans(a)))
 
@@ -104,14 +104,14 @@ sealed trait IO[+E, +A] {
 
 object IO {
   def succeed[A](result: => A): IO[Nothing, A] = Op.Succeed(() => result)
-  def failCause[E](cause: => Cause[E]): IO[E, Nothing] = Op.FailCause(() => cause)
   def fail[E](error: => E): IO[E, Nothing] = failCause(Cause.fail(error))
   def die(defect: Throwable): IO[Nothing, Nothing] = failCause(Cause.die(defect))
+  def failCause[E](cause: => Cause[E]): IO[E, Nothing] = Op.FailCause(() => cause)
 
   def attempt[A](result: => A): IO[Throwable, A] = Op.Attempt(() => result)
 
   enum Op[+E, +A] extends IO[E, A] {
-    case Succeed[A](value: () => A) extends Op[Nothing, A]
+    case Succeed[A](result: () => A) extends Op[Nothing, A]
     case FailCause[E](cause: () => Cause[E]) extends Op[E, Nothing]
     case Attempt[E <: Throwable, A](result: () => A) extends Op[E, A]
 
@@ -127,9 +127,9 @@ object IO {
                                   ) extends Op[E, A]
   }
 
-  extension[E <: Throwable, A] (zio: IO[E, A]) {
+  extension[E <: Throwable, A] (io: IO[E, A]) {
     def refineToOrDie[E2 <: E : ClassTag]: IO[E2, A] =
-      zio.refineOrDie({ case e: E2 => e })
+      io.refineOrDie({ case e: E2 => e })
   }
 
   def fromEither[E, A](either: => Either[E, A]): IO[E, A] =
