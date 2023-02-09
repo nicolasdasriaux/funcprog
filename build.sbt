@@ -1,4 +1,5 @@
 val zioVersion = SettingKey[String]("zioVersion")
+val zioDirectVersion = SettingKey[String]("zioDirectVersion")
 val zioConfigVersion = SettingKey[String]("zioConfigVersion")
 val zioCliVersion = SettingKey[String]("zioCliVersion")
 val zioHttpVersion = SettingKey[String]("zioHttpVersion")
@@ -7,10 +8,12 @@ lazy val root = (project in file("."))
   .settings(
     name := "funcprog",
     version := "0.1.0-SNAPSHOT",
-    scalaVersion := "3.2.0",
+    scalaVersion := "3.2.1",
     scalacOptions ++= Seq("-deprecation", "-Yexplicit-nulls"),
-    resolvers += Resolver.sonatypeRepo("snapshots"),
-    zioVersion := "2.0.4",
+    resolvers ++= Resolver.sonatypeOssRepos("snapshots"),
+
+    zioVersion := "2.0.5",
+    zioDirectVersion := "1.0.0-RC4",
     zioConfigVersion := "3.0.1",
     zioCliVersion := "0.2.7",
     zioHttpVersion := "2.0.0-RC11",
@@ -18,6 +21,7 @@ lazy val root = (project in file("."))
     libraryDependencies ++= Seq(
       "dev.zio" %% "zio" % zioVersion.value,
       "dev.zio" %% "zio-streams" % zioVersion.value,
+      "dev.zio" %% "zio-direct" % zioDirectVersion.value,
       "dev.zio" %% "zio-test" % zioVersion.value % Test,
 
       "dev.zio" %% "zio-config" % zioConfigVersion.value,

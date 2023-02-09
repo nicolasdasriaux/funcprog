@@ -2,13 +2,14 @@ autoscale: true
 footer: Practical Functional Programming - Values
 slidenumbers: true
 
-# Practical Functional Programming
-# [fit] **It's about Values**
-## in Scala
+# [fit] Practical Functional Programming
+# [fit] **It's All about Values**
+## in Scala 3
 
 ---
 
-# What Is Functional Programming?
+# **Functional Programming**
+### From the **Small** to the **Large**
 
 ---
 
@@ -18,8 +19,8 @@ slidenumbers: true
 * A _function_ must be
   - **Deterministic**: same arguments implies same result
   - **Total**: result always available for arguments, no exception :wink:
-  - **Pure**: no side-effects, only effect is computing result
-* Functional programming **in the small**
+  - **Pure**: no side effects, only effect is computing result
+* Enough for functional programming **in the small**
 
 ---
 
@@ -32,13 +33,13 @@ slidenumbers: true
   - Primitive types
   - Immutable classes
   - **Function** types
-* Values are **compared by value** :wink:
+* Values are **compared by value** :wink: (except functions, it's impossible)
 
 ---
 
 # **Expressions**
 
-* **Expressions** Combine multiple _values_ to compute another value
+* **Expressions** combine multiple _values_ to compute another value
 * _Functions_ can participate in expressions (as they are values)
 
 ---
@@ -48,15 +49,15 @@ slidenumbers: true
 * Functional Programming is programming with **values** and **expressions**
 * _Functions_ are just a special kind of value
 * _Applying a function_ is just a special case of expression
-* Functional programming **in the large**
+* Expands horizon to functional programming **in the large**
 
 ---
 
-# Values in a **Pure** World
+# **Foundations** for Values
 
 ---
 
-# Immutable Class
+# **Immutable Class**
 
 ```scala
 case class Customer(id: Int, firstName: String, lastName: String)
@@ -76,7 +77,7 @@ assert(customer == sameCustomer)
 
 ---
 
-# Immutable Collection
+# **Immutable Collection**
 
 ```scala
 // Create a new instance
@@ -90,7 +91,7 @@ val availableGreetings =
 
 ---
 
-# Expressions
+# **Expressions**
 
 ```scala
 val status = if enabled then "On" else "Off" // `if` expression
@@ -112,7 +113,7 @@ val altitude = { // { ... } expression
 
 ---
 
-# Simple Immutable `enum`
+# **Immutable `enum`** (simple)
 
 ```scala
 enum Direction {
@@ -132,7 +133,7 @@ case class Position(x: Int, y: Int) {
 
 ---
 
-# Immutable `enum` on Steroids
+# **Immutable `enum`** (fields may vary)
 
 ```scala
 enum Action { // ADT (Algebraic Data Type)
@@ -156,9 +157,9 @@ case class Player(position: Position) {
 # Modeling with Value Types
 
 * Model data as **value types** with **ADT**s (Algebraic Data Types)
-  - Combination of fields with `case class`
-  - Alternatives with `enum`
-* Add **combinator** methods
+  - Aggregation (... with ... with ...) of fields with `case class`
+  - Alternatives (... or ... or ...) with `enum`
+* Add **factory** and **combinator** methods
 * Use **pattern matching** with `match` expression to handle `case`s
 * Mostly do not use _inheritance_ and _polymorphism_
 
@@ -186,7 +187,7 @@ case class Bank(name: String, accounts: Map[Int, Double]) {
 
 ---
 
-# Combine `Bank` and `Operation`
+# Processing `Operation`
 
 ```scala
 case class Bank(name: String, accounts: Map[Int, Double]) {
@@ -206,7 +207,21 @@ case class Bank(name: String, accounts: Map[Int, Double]) {
 
 ---
 
-# Fallible Result Reified
+# **Reifying** :astonished:
+
+*  Just one small piece of functional lingo
+* **To reify**: to turn into a **value type**
+* _Reification_, _reified_...
+* The key to functional programming **in the large**
+
+---
+
+# Reifying **Fallible Results**
+### Handling **Errors** in a Pure World
+
+---
+
+# **Fallible Result** Reified
 
 ```scala
 enum Either[+E, +A] { // ...
@@ -216,6 +231,7 @@ enum Either[+E, +A] { // ...
 }
 
 object Either {
+  // --- Factories
   def succeed[A](result: A): Either[Nothing, A] = Right(result)
   def fail[E](error: E): Either[E, Nothing] = Left(error)
   // ...
@@ -224,10 +240,11 @@ object Either {
 
 ---
 
-# Fallible Result Reified (continued)
+# **Fallible Result** Reified (continued)
 
 ```scala
 enum Either[+E, +A] { va => // `va` becomes an alias for `this`
+  // --- Combinators
   def flatMap[E2 >: E, B](cont: A => Either[E2, B]): Either[E2, B] =
     va match {
       case Right(a) => cont(a)
@@ -280,12 +297,11 @@ object SavingsAccount {
       }
     }
 }
-
 ```
 
 ---
 
-# Flatten Those `map`s and `flatMap`s!
+# Transferring Money (flatten them all!)
 
 ```scala
 object SavingsAccount {
@@ -321,7 +337,6 @@ assert(success == Right((SavingsAccount(150), SavingsAccount(350))))
 # Failed Transfers
 
 ```scala
-
 val overDebited = SavingsAccount.transfer(
   source = SavingsAccount(40),
   destination = SavingsAccount(300),
@@ -341,24 +356,26 @@ assert(overCredited == Left("Cannot be over-credited"))
 
 ---
 
-# Values in an **Impure** World
-### Reifying Side-effects
+# Reifying **Programs**
+### Performing **Side-effects** in a Pure World
 
 ---
 
-# Infallible Program
+# Reifying **Infallible Programs**
 
 ---
 
-# Infallible Program Reified
+# **Infallible Program** Reified
 
 ```scala
 trait UIO[+A] {
+  // --- Combinators
   def flatMap[B](cont: A => UIO[B]): UIO[B] = Op.FlatMap(this, cont)
-  def map[B](trans: A => B): UIO[B] = ???
+  def map[B](trans: A => B): UIO[B] = this.flatMap(a => IO.succeed(trans(a)))
 }
 
 object UIO {
+  // --- Factories
   def succeed[A](a: => A): UIO[A] = Op.Succeed(() => a)
 
   enum Op[+A] extends UIO[A] {
@@ -374,10 +391,16 @@ object UIO {
 
 ```scala
 object Runtime {
+  // --- Interpreter
   def unsafeRun[A](io: UIO[A]): A = {
     io match {
-      case Op.Succeed(result) => ???
-      case Op.FlatMap(ioA0, cont) => ???
+      case Op.Succeed(result) => result(
+
+      case Op.FlatMap(ioA0, cont) =>
+        val a0 = unsafeRun(ioA0)
+        val ioA = cont(a0)
+        val a = unsafeRun(ioA)
+        a
     }
   }
 }
@@ -385,7 +408,7 @@ object Runtime {
 
 ---
 
-# Elementary `Console` Programs
+# Elementary `Console` Programs (infallible)
 
 ```scala
 object Console {
@@ -396,26 +419,64 @@ object Console {
 
 ---
 
-# Fallible Program
+# Greeting User
+
+```scala
+object ConsoleApp {
+  val helloApp: IO[Unit] =
+    Console.printLine("What's your name?").flatMap { _ =>
+      Console.readLine.flatMap { name =>
+        Console.printLine(s"Hello $name!")
+      }
+    }
+
+  def main(args: Array[String]): Unit = {
+    // PURE-only above ^^^^^ (program is just a value)
+    Runtime.unsafeRun(helloApp) // Only this line is IMPURE!!!
+  }
+}
+```
 
 ---
 
-# Success, Failure and Death
+# Greeting User (flatten them all!)
+
+```scala
+object ConsoleApp {
+  val helloApp: IO[Unit] =
+    for {
+      _ <- Console.printLine("What's your name?")
+      name <- Console.readLine
+      _ <- Console.printLine(s"Hello $name!")
+    } yield ()
+
+  def main(args: Array[String]): Unit = {
+    Runtime.unsafeRun(helloApp)
+  }
+}
+```
+
+---
+
+# Reifying **Fallible Programs**
+
+---
+
+# Fallible Program Exit
 
 * **Succeed** with a **result**
 
-* **Fail** with an **error**
+* **Fail** with an **error** (value)
   - _Expected_, recoverable
   - **Domain** error, **business** error, but not only
-  - Materialized as a value
 
-* **Die** with a **defect**
+* **Die** with a **defect** (exception)
   - _Unexpected_, not recoverable
-  - Materialized as an **Exception**
+  - Often just technical failure
 
 ---
 
-# Fallible Program Exit Reified
+# **Fallible Program Exit** Reified
 
 ```scala
 enum Exit[+E, +A] {
@@ -431,15 +492,17 @@ enum Cause[+E] {
 
 ---
 
-# Fallible Program Reified
+# **Fallible Program** Reified
 
 ```scala
 trait IO[+E, +A] {
+  // --- Combinators
   def flatMap[E2 >: E, B](cont: A => IO[E2, B]): IO[E2, B] = ???
   def map[B](trans: A => B): IO[E, B] = ???
 }
 
 object IO {
+  // --- Factories
   def succeed[A](result: => A): IO[Nothing, A] = ???
   def fail[E](error: => E): IO[E, Nothing] = ???
   def die(defect: Throwable): IO[Nothing, Nothing] = ???
@@ -450,10 +513,11 @@ object IO {
 
 ---
 
-# Fallible Program Reified (error handling)
+# **Fallible Program** Reified (error handling)
 
 ```scala
 trait IO[+E, +A] { // ...
+  // --- Combinators
   def foldCauseIO[E2, B](
                           failCauseCase: Cause[E] => IO[E2, B],
                           succeedCase: A => IO[E2, B]
@@ -474,6 +538,7 @@ extension[E <: Throwable, A] (io: IO[E, A]) {
 
 ```scala
 object Runtime {
+  // --- Interpreter
   def unsafeRun[E, A](io: IO[E, A]): Exit[E, A] = ???
 }
 ```
@@ -527,9 +592,7 @@ object WelcomeApp {
     } yield User(name, age)
 
   def main(args: Array[String]): Unit = {
-    // PURE-only above ^^^^^ (programs are values)
-    val exit: Exit[IOException | String, User] = Runtime.unsafeRun(program) // Only this line is IMPURE!!!
-    println(s"exit=$exit")
+    val exit: Exit[IOException | String, User] = Runtime.unsafeRun(program)
   }
 }
 ```
@@ -541,20 +604,53 @@ object WelcomeApp {
 
 ---
 
-# Assertion Reified
+# **_ZIO_**, a Library and an Ecosystem
+
+* A foundation **library**
+  - Fallible, side effecting **program**
+  - Fallible, side effecting **stream of elements**
+  - Concurrency
+  - Testing
+* An **ecosystem** of library based on the _ZIO_ library, including
+  - **ZIO Mock**, test mocks
+  - **ZIO HTTP**, HTTP server
+  - **ZIO Quill**, database access
+  - **ZIO Config**, **ZIO CLI**, **ZIO Logging**...
+
+---
+
+# Fallible Program in _ZIO_
+
+```scala
+ZIO[-R /* dependencies */, +E /* error */, +A /* result*/]
+```
+
+* Program that may
+  - Succeed with a **result** of type `A`
+  - Fail with an **error** of type `E`
+  - Die with a **defect** (exception)
+* Needed **dependencies** can be expressed as type `R`
+
+---
+
+# Reifying **Test Assertions**
+
+---
+
+# **Test Assertion** Reified
 
 ```scala
 final case class Assertion[-A](/* ... */) {
-  // Combinators
+  // --- Combinators
   def &&[A1 <: A](that: Assertion[A1]): Assertion[A1] = ???
   def ||[A1 <: A](that: Assertion[A1]): Assertion[A1] = ???
   def unary_! : Assertion[A] = ???
-  // Interpreter
+  // --- Interpreters
   def test(value: A) /* ...*/: Boolean = ???
 }
 
 object Assertion {
-  // Factories
+  // --- Factories
   def isGreaterThanEqualTo[A](reference: A)(using ord: Ordering[A]): Assertion[A] = ???
   def isLessThanEqualTo[A](reference: A)(using ord: Ordering[A]): Assertion[A] = ???
   def isRight[A](assertion: Assertion[A]): Assertion[Either[Any, A]] = ???
@@ -566,11 +662,11 @@ object Assertion {
 # Combining Assertions
 
 ```scala
+// --- Combinators
 val assertion1: Assertion[Int] =
   Assertion.isGreaterThanEqualTo(1) && Assertion.isLessThanEqualTo(5)
 
-// def isRight[A](assertion: Assertion[A]): Assertion[Either[Any, A]]
-val assertion2: Assertion[Int] =
+val assertion2: Assertion[Either[Any, Int]] =
   Assertion.isRight(Assertion.isGreaterThanEqualTo(1))
 
 def between[A](min: A, max: A)(using ord: Ordering[A]): Assertion[A] =
@@ -579,28 +675,34 @@ def between[A](min: A, max: A)(using ord: Ordering[A]): Assertion[A] =
 
 ---
 
-# Testing Assertion
+# Checking Assertion
 
 ```scala
 val assertion: Assertion[Int] = between(min = 1, max = 10)
+
+// --- Interpreter
 val result: Boolean = assertion.test(5)
 ```
 
 ---
 
-# Generator Reified
+# Reifying **Random Generators**
+
+---
+
+# **Random Generator** Reified
 
 ```scala
 final case class Gen[-R, +A](/* ... */) {
-  // Combinators
+  // --- Combinators
   def map[B](f: A => B): Gen[R, B] = ???
   def zip[R1 <: R, B](that: Gen[R1, B]): Gen[R1, (A, B)] = ???
-  // Interpreters
+  // --- Interpreter
   def runCollectN(n: Int): ZIO[R, Nothing, List[A]] = ???
 }
 
 object Gen {
-  // Factories
+  // --- Factories
   def int(min: Int, max: Int): Gen[Any, Int] = ???
   def elements[A](as: A*): Gen[Any, A] = ???
   def localDate(min: LocalDate, max: LocalDate): Gen[Any, LocalDate] = ???
@@ -612,6 +714,9 @@ object Gen {
 # Combining Generators
 
 ```scala
+case class Person(id: Int, firstName: String, lastName: String, birthDate: LocalDate)
+
+// --- Factories
 val idGen: Gen[Any, Int] = Gen.int(min = 1, max = 5000)
 val firstNameGen: Gen[Any, String] = Gen.elements("Peter", "Paul", "Mary")
 val lastNameGen: Gen[Any, String] = Gen.elements("Brown", "Jones", "Miller", "Davis")
@@ -621,8 +726,7 @@ val birthDateGen: Gen[Any, LocalDate] = Gen.localDate(
   max = LocalDate.of(1995, 12, 31).nn
 )
 
-case class Person(id: Int, firstName: String, lastName: String, birthDate: LocalDate)
-
+// --- Combinators
 val personGen: Gen[Any, Person] =
   idGen.zip(firstNameGen).zip(lastNameGen).zip(birthDateGen)
     .map(Person(_, _, _, _))
@@ -633,9 +737,71 @@ val personGen: Gen[Any, Person] =
 # Running Generator
 
 ```scala
-val generatePeople: ZIO[Any, Nothing, List[Person]] = personGen.runCollectN(10)
-
-val peopleExit: Exit[Nothing, List[Person]] = Unsafe.unsafe { unsafe ?=>
-  Runtime.default.unsafe.run(generatePeople)
-}
+// --- Interpreter
+val generatePeople: UIO[List[Person]] = personGen.runCollectN(10)
+// Running a `Generator` returns a **value** of type `UIO[A]`
 ```
+
+---
+
+# Reifying **Streams of Elements**
+
+---
+
+# **Stream of Elements** Reified
+
+```scala
+ZStream[-R /* dependencies */, +E /* error */, +A /* elements */]
+```
+
+* Produces 0, 1 or more **elements** of type `A` before closing
+  - Potentially an infinity of elements
+  - Potentially pauses between elements
+  - May require **side effects** to produce the elements
+* May fail at some point with an **error** of type `E`
+* Expresses **dependencies** defined as type `R`
+
+---
+
+# Combining and Running Streams
+
+```scala
+// --- Factories
+val idsStream: ZStream[Any, Nothing, Int] = ZStream.iterate(1)(_ + 1)
+val firstNamesStream: ZStream[Any, Nothing, String] = ZStream("Paul", "Peter", "Mary", "John")
+val lastNamesStream: ZStream[Any, Nothing, String] = ZStream("Simpson", "Davis", "Parker")
+
+// --- Combinators
+val customersStream: ZStream[Any, Nothing, Customer] =
+  idsStream.zip(firstNamesStream.forever).zip(lastNamesStream.forever)
+    .map(Customer(_, _, _))
+    .take(6)
+
+// --- Interpreters
+val getCustomers: ZIO[Any, Nothing, Chunk[Customer]] = customersStream.runCollect
+// Running a `ZStream` returns a **value** of type `ZIO[R, E, A]`
+```
+
+---
+
+# Values in a Nutshell
+
+---
+
+# Foundations
+
+* **Immutables classes** (`case class` and `enum`)
+* **Immutable collections**
+* **Expressions** and **pattern matching**
+* Functions
+* **Type parameters** (variance, top type, bottom type, type constraints...)
+
+---
+
+# Patterns
+
+* **Factories** provide basic elements
+* **Combinators** assemble values to build more advanced values
+* **Interpreters** can be called at last possible moment once everything is assembled
+* `flatMap` assembles sequentially dependent values
+* `zip` assembles independent values

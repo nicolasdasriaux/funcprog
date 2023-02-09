@@ -104,11 +104,11 @@ trait IO[+E, +A] {
 
 object IO {
   def succeed[A](result: => A): IO[Nothing, A] = Op.Succeed(() => result)
+  def failCause[E](cause: => Cause[E]): IO[E, Nothing] = Op.FailCause(() => cause)
+  def attempt[A](result: => A): IO[Throwable, A] = Op.Attempt(() => result)
+
   def fail[E](error: => E): IO[E, Nothing] = failCause(Cause.fail(error))
   def die(defect: Throwable): IO[Nothing, Nothing] = failCause(Cause.die(defect))
-  def failCause[E](cause: => Cause[E]): IO[E, Nothing] = Op.FailCause(() => cause)
-
-  def attempt[A](result: => A): IO[Throwable, A] = Op.Attempt(() => result)
 
   enum Op[+E, +A] extends IO[E, A] {
     case Succeed[A](result: () => A) extends Op[Nothing, A]

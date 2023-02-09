@@ -5,8 +5,9 @@ import IO.Op
 object Runtime {
   def unsafeRun[E, A](io: IO[E, A]): Exit[E, A] = {
     inline def dieOnException[E, A](result: => Exit[E, A]): Exit[E, A] =
-      try result
-      catch {
+      try {
+        result
+      } catch {
         case ex: Throwable => Exit.die(ex)
       }
 
@@ -37,16 +38,16 @@ object Runtime {
 
     inline def runFoldCauseIO[E0, A0, E, A](
                                              ioA0: IO[E0, A0],
-                                             onFailCause: Cause[E0] => IO[E, A],
-                                             onSucceed: A0 => IO[E, A]
+                                             failCauseCase: Cause[E0] => IO[E, A],
+                                             succeedCase: A0 => IO[E, A]
                                            ): Exit[E, A] =
       unsafeRun(ioA0) match {
         case Exit.FailCause(cause) /* cause: Cause[E0] */ => dieOnException {
-          unsafeRun(onFailCause(cause))
+          unsafeRun(failCauseCase(cause))
         }
 
         case Exit.Succeed(a0) /* a0: A0 */ => dieOnException {
-          unsafeRun(onSucceed(a0))
+          unsafeRun(succeedCase(a0))
         }
       }
 
@@ -56,8 +57,8 @@ object Runtime {
       case Op.Attempt(result) => runAttempt(result)
       case Op.FlatMap(ioA0, cont) => runFlatMap(ioA0, cont)
 
-      case Op.FoldCauseIO(ioA0, onFailCause , onSucceed) =>
-        runFoldCauseIO(ioA0, onFailCause, onSucceed)
+      case Op.FoldCauseIO(ioA0, failCauseCase , succeedCase) =>
+        runFoldCauseIO(ioA0, failCauseCase, succeedCase)
     }
   }
 }

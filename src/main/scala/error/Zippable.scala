@@ -37,10 +37,10 @@ object Zippable {
       def zip(left: A, right: B): Out = left *: right
     }
 
-  given tupleZipValue[A <: Tuple, B](using NotGiven[B <:< Tuple]): Zippable.Out[A, B, Tuple.Concat[A, Tuple1[B]]] =
+  given tupleZipValue[A <: Tuple, B](using NotGiven[B <:< Tuple]): Zippable.Out[A, B, Tuple.Append[A, B]] =
     new Zippable[A, B] {
-      type Out = Tuple.Concat[A, Tuple1[B]]
-      def zip(left: A, right: B): Out = left ++ Tuple(right)
+      type Out = Tuple.Append[A, B]
+      def zip(left: A, right: B): Out = left :* right
     }
 
   given valueZipValue[A, B](using NotGiven[A <:< Tuple], NotGiven[B <:< Tuple]): Zippable.Out[A, B, (A, B)] =
