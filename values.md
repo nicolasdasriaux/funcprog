@@ -33,7 +33,7 @@ slidenumbers: true
   - Primitive types
   - Immutable classes
   - **Function** types
-* Values are **compared by value** :wink: (except functions, it's impossible)
+* Values are **compared by value** :wink: (except functions, it's undecidable :astonished:)
 
 ---
 
@@ -600,7 +600,7 @@ object WelcomeApp {
 ---
 
 # **Into the Large**
-### with the _ZIO_ ecosystem
+### with the _ZIO_ Ecosystem
 
 ---
 
@@ -653,6 +653,7 @@ object Assertion {
   // --- Factories
   def isGreaterThanEqualTo[A](reference: A)(using ord: Ordering[A]): Assertion[A] = ???
   def isLessThanEqualTo[A](reference: A)(using ord: Ordering[A]): Assertion[A] = ???
+  // --- Combinators
   def isRight[A](assertion: Assertion[A]): Assertion[Either[Any, A]] = ???
 }
 ```
@@ -697,7 +698,7 @@ final case class Gen[-R, +A](/* ... */) {
   // --- Combinators
   def map[B](f: A => B): Gen[R, B] = ???
   def zip[R1 <: R, B](that: Gen[R1, B]): Gen[R1, (A, B)] = ???
-  // --- Interpreter
+  // --- Interpreters
   def runCollectN(n: Int): ZIO[R, Nothing, List[A]] = ???
 }
 
@@ -777,31 +778,45 @@ val customersStream: ZStream[Any, Nothing, Customer] =
     .map(Customer(_, _, _))
     .take(6)
 
-// --- Interpreters
+// --- Interpreter
 val getCustomers: ZIO[Any, Nothing, Chunk[Customer]] = customersStream.runCollect
 // Running a `ZStream` returns a **value** of type `ZIO[R, E, A]`
 ```
 
 ---
 
-# Values in a Nutshell
+# Reifying **HTTP Server**
+### with _ZIO HTTP_
 
 ---
 
-# Foundations
+![inline](http.png)
+
+---
+
+![inline](middleware.png)
+
+---
+
+# Reify Them All!
+
+---
+
+# Simple Foundations
 
 * **Immutables classes** (`case class` and `enum`)
 * **Immutable collections**
 * **Expressions** and **pattern matching**
 * Functions
-* **Type parameters** (variance, top type, bottom type, type constraints...)
+* Advanced **type parameters** (variance, top and bottom type, subtyping, type constraints... :astonished:)
 
 ---
 
-# Patterns
+# Simple Patterns
 
 * **Factories** provide basic elements
 * **Combinators** assemble values to build more advanced values
 * **Interpreters** can be called at last possible moment once everything is assembled
-* `flatMap` assembles sequentially dependent values
-* `zip` assembles independent values
+* And some interesting ways of assembling two values
+  - **`flatMap`**, _dependent_ values in a _sequential_ way
+  - **`zip`**, _independent_ values in a potentially _parallel_ way
